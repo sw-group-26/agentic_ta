@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic TA - Analytics Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            color: #1a1a1a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .back-btn {
+            padding: 10px 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .back-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .header-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .header-btn.primary {
+            background: #1a73e8;
+            color: white;
+            border: none;
+        }
+
+        .header-btn.primary:hover {
+            background: #1557b0;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 24px;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .summary-change {
+            font-size: 13px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .summary-change.positive { color: #2e7d32; }
+        .summary-change.negative { color: #c62828; }
+        .summary-change.neutral { color: #666; }
+
+        .summary-card.warning .summary-value { color: #f57c00; }
+        .summary-card.danger .summary-value { color: #c62828; }
+        .summary-card.success .summary-value { color: #2e7d32; }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .card-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .card-btn.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+
+        .card-content {
+            padding: 22px;
+        }
+
+        /* Score Distribution Chart */
+        .chart-container {
+            height: 240px;
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+            padding: 20px 0;
+        }
+
+        .chart-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 50px;
+            background: #1a73e8;
+            border-radius: 6px 6px 0 0;
+            transition: opacity 0.2s;
+        }
+
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+
+        .chart-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .chart-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        /* Assignment Performance Table */
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .performance-table th {
+            text-align: left;
+            padding: 12px 14px;
+            background: #f5f5f5;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .performance-table td {
+            padding: 14px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .performance-table tr:hover {
+            background: #f5f9ff;
+        }
+
+        .assignment-name {
+            font-weight: 500;
+            color: #1a73e8;
+            cursor: pointer;
+        }
+
+        .assignment-name:hover {
+            text-decoration: underline;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .score-badge.high { background: #e8f5e9; color: #2e7d32; }
+        .score-badge.medium { background: #fff3e0; color: #f57c00; }
+        .score-badge.low { background: #ffebee; color: #c62828; }
+
+        /* At-Risk Students */
+        .at-risk-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .at-risk-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: #fff8e1;
+            border-radius: 8px;
+            border-left: 4px solid #f57c00;
+        }
+
+        .at-risk-item.critical {
+            background: #ffebee;
+            border-left-color: #c62828;
+        }
+
+        .risk-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #f57c00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .at-risk-item.critical .risk-avatar {
+            background: #c62828;
+        }
+
+        .risk-info {
+            flex: 1;
+        }
+
+        .risk-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .risk-reason {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .risk-action {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .risk-action:hover {
+            background: #f5f5f5;
+        }
+
+        /* Grading Progress */
+        .progress-section {
+            margin-bottom: 18px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .progress-label {
+            font-weight: 500;
+        }
+
+        .progress-value {
+            font-weight: 600;
+            color: #1a73e8;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.blue { background: #1a73e8; }
+        .progress-fill.green { background: #4caf50; }
+        .progress-fill.orange { background: #ff9800; }
+
+        /* Recent Activity */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .activity-icon.grade {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .activity-icon.flag {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .activity-icon.submit {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .activity-text strong {
+            font-weight: 500;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* Common Issues */
+        .issues-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .issue-item {
+            padding: 14px 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .issue-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .issue-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: #c62828;
+        }
+
+        .issue-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .issue-fill {
+            height: 100%;
+            background: #c62828;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="back-btn">Back</button>
+            <div>
+                <div class="header-title">Course Analytics</div>
+                <div class="header-subtitle">CSC 2510 - Computer Organization | Spring 2026</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="header-btn">Export Report</button>
+            <button class="header-btn primary">Email At-Risk Students</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Total Students</div>
+                <div class="summary-value">52</div>
+                <div class="summary-change neutral">
+                    <span>Same as last semester</span>
+                </div>
+            </div>
+            <div class="summary-card success">
+                <div class="summary-label">Class Average</div>
+                <div class="summary-value">78.5</div>
+                <div class="summary-change positive">
+                    <span>+3.2 from last assignment</span>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Assignments Graded</div>
+                <div class="summary-value">8/12</div>
+                <div class="summary-change neutral">
+                    <span>4 assignments remaining</span>
+                </div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-label">Flagged Submissions</div>
+                <div class="summary-value">7</div>
+                <div class="summary-change negative">
+                    <span>+2 from last week</span>
+                </div>
+            </div>
+            <div class="summary-card danger">
+                <div class="summary-label">At-Risk Students</div>
+                <div class="summary-value">5</div>
+                <div class="summary-change negative">
+                    <span>Requires attention</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Score Distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Score Distribution</span>
+                        <div class="card-actions">
+                            <button class="card-btn active">All Assignments</button>
+                            <button class="card-btn">Lab 5 Only</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <div class="chart-bar-group">
+                                <div class="chart-value">3</div>
+                                <div class="chart-bar" style="height: 30px; background: #c62828;"></div>
+                                <div class="chart-label">0-59</div>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-value">8</div>
+                                <div class="chart-bar" style="height: 80px; background: #f57c00;"></div>
+                                <div class="chart-label">60-69</div>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-value">14</div>
+                                <div class="chart-bar" style="height: 140px; background: #ffc107;"></div>
+                                <div class="chart-label">70-79</div>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-value">18</div>
+                                <div class="chart-bar" style="height: 180px; background: #4caf50;"></div>
+                                <div class="chart-label">80-89</div>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="chart-value">9</div>
+                                <div class="chart-bar" style="height: 90px; background: #2e7d32;"></div>
+                                <div class="chart-label">90-100</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Performance -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Assignment Performance</span>
+                        <div class="card-actions">
+                            <button class="card-btn">View All</button>
+                        </div>
+                    </div>
+                    <div class="card-content" style="padding: 0;">
+                        <table class="performance-table">
+                            <thead>
+                                <tr>
+                                    <th>Assignment</th>
+                                    <th>Submitted</th>
+                                    <th>Graded</th>
+                                    <th>Average</th>
+                                    <th>Median</th>
+                                    <th>Common Issue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="assignment-name">Lab 5 - Binary Search</span></td>
+                                    <td>45/52</td>
+                                    <td>45/45</td>
+                                    <td><span class="score-badge high">82.3</span></td>
+                                    <td>85</td>
+                                    <td>Edge case handling</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="assignment-name">Lab 4 - Linked Lists</span></td>
+                                    <td>48/52</td>
+                                    <td>48/48</td>
+                                    <td><span class="score-badge high">79.5</span></td>
+                                    <td>81</td>
+                                    <td>Memory leaks</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="assignment-name">Lab 3 - Sorting</span></td>
+                                    <td>50/52</td>
+                                    <td>50/50</td>
+                                    <td><span class="score-badge medium">74.2</span></td>
+                                    <td>75</td>
+                                    <td>Time complexity</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="assignment-name">Lab 2 - Arrays</span></td>
+                                    <td>51/52</td>
+                                    <td>51/51</td>
+                                    <td><span class="score-badge high">85.6</span></td>
+                                    <td>88</td>
+                                    <td>None significant</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="assignment-name">Lab 1 - Intro</span></td>
+                                    <td>52/52</td>
+                                    <td>52/52</td>
+                                    <td><span class="score-badge high">91.2</span></td>
+                                    <td>93</td>
+                                    <td>None significant</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Common Issues -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Common Issues (Lab 5)</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="issues-list">
+                            <div class="issue-item">
+                                <div class="issue-header">
+                                    <span class="issue-name">Incorrect edge case handling (empty array)</span>
+                                    <span class="issue-count">18 students</span>
+                                </div>
+                                <div class="issue-bar">
+                                    <div class="issue-fill" style="width: 40%;"></div>
+                                </div>
+                            </div>
+                            <div class="issue-item">
+                                <div class="issue-header">
+                                    <span class="issue-name">Integer overflow in mid calculation</span>
+                                    <span class="issue-count">12 students</span>
+                                </div>
+                                <div class="issue-bar">
+                                    <div class="issue-fill" style="width: 27%;"></div>
+                                </div>
+                            </div>
+                            <div class="issue-item">
+                                <div class="issue-header">
+                                    <span class="issue-name">Off-by-one errors in boundary conditions</span>
+                                    <span class="issue-count">9 students</span>
+                                </div>
+                                <div class="issue-bar">
+                                    <div class="issue-fill" style="width: 20%;"></div>
+                                </div>
+                            </div>
+                            <div class="issue-item">
+                                <div class="issue-header">
+                                    <span class="issue-name">Missing docstrings/comments</span>
+                                    <span class="issue-count">7 students</span>
+                                </div>
+                                <div class="issue-bar">
+                                    <div class="issue-fill" style="width: 15%; background: #f57c00;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- At-Risk Students -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">At-Risk Students</span>
+                        <div class="card-actions">
+                            <button class="card-btn">View All</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="at-risk-list">
+                            <div class="at-risk-item critical">
+                                <div class="risk-avatar">DK</div>
+                                <div class="risk-info">
+                                    <div class="risk-name">David Kim</div>
+                                    <div class="risk-reason">3 missed assignments, avg: 52%</div>
+                                </div>
+                                <button class="risk-action">Contact</button>
+                            </div>
+                            <div class="at-risk-item critical">
+                                <div class="risk-avatar">JL</div>
+                                <div class="risk-info">
+                                    <div class="risk-name">James Lee</div>
+                                    <div class="risk-reason">Declining grades, avg: 58%</div>
+                                </div>
+                                <button class="risk-action">Contact</button>
+                            </div>
+                            <div class="at-risk-item">
+                                <div class="risk-avatar">SC</div>
+                                <div class="risk-info">
+                                    <div class="risk-name">Sarah Chen</div>
+                                    <div class="risk-reason">2 late submissions, avg: 65%</div>
+                                </div>
+                                <button class="risk-action">Contact</button>
+                            </div>
+                            <div class="at-risk-item">
+                                <div class="risk-avatar">MP</div>
+                                <div class="risk-info">
+                                    <div class="risk-name">Mike Patel</div>
+                                    <div class="risk-reason">Similarity flags on 2 labs</div>
+                                </div>
+                                <button class="risk-action">Review</button>
+                            </div>
+                            <div class="at-risk-item">
+                                <div class="risk-avatar">AW</div>
+                                <div class="risk-info">
+                                    <div class="risk-name">Amy Wilson</div>
+                                    <div class="risk-reason">Missed last 2 assignments</div>
+                                </div>
+                                <button class="risk-action">Contact</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grading Progress -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Grading Progress</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Lab 5 - Binary Search</span>
+                                <span class="progress-value">45/45 (100%)</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill green" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Project 2 - Data Structures</span>
+                                <span class="progress-value">32/48 (67%)</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill blue" style="width: 67%;"></div>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Quiz 3</span>
+                                <span class="progress-value">0/52 (0%)</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill orange" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Recent Activity</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon grade">G</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">Graded <strong>15 submissions</strong> for Lab 5</div>
+                                    <div class="activity-time">2 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon flag">F</div>
+                                <div class="activity-content">
+                                    <div class="activity-text"><strong>Mike Patel</strong> flagged for similarity</div>
+                                    <div class="activity-time">3 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon submit">S</div>
+                                <div class="activity-content">
+                                    <div class="activity-text"><strong>3 new submissions</strong> for Project 2</div>
+                                    <div class="activity-time">5 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon grade">G</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">Published grades for <strong>Lab 5</strong></div>
+                                    <div class="activity-time">Yesterday</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon flag">F</div>
+                                <div class="activity-content">
+                                    <div class="activity-text"><strong>David Kim</strong> marked as at-risk</div>
+                                    <div class="activity-time">2 days ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

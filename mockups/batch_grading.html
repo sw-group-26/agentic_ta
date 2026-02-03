@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic TA - Batch Grading View</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            color: #1a1a1a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .back-btn {
+            padding: 10px 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .back-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .progress-bar {
+            width: 220px;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a73e8, #4caf50);
+            width: 65%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+
+        .header-btn.pause {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .header-btn.pause:hover {
+            background: #ffe0b2;
+        }
+
+        .header-btn.cancel {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .header-btn.cancel:hover {
+            background: #ffcdd2;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            height: calc(100vh - 78px);
+        }
+
+        /* Submissions List */
+        .submissions-list {
+            width: 360px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-header {
+            padding: 18px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .list-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .list-filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .filter-btn.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+
+        .submissions-scroll {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .submission-item {
+            padding: 16px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submission-item:hover {
+            background: #f5f9ff;
+        }
+
+        .submission-item.active {
+            background: #e3f2fd;
+            border-left: 3px solid #1a73e8;
+        }
+
+        .submission-item.graded {
+            background: #f1f8e9;
+        }
+
+        .submission-item.grading {
+            background: #fff8e1;
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .student-name {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-indicator.pending { background: #9e9e9e; }
+        .status-indicator.grading {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+        .status-indicator.graded { background: #4caf50; }
+        .status-indicator.error { background: #f44336; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .submission-meta {
+            display: flex;
+            gap: 14px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .score-preview {
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            padding: 20px 24px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .detail-student {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            background: #1a73e8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 20px;
+        }
+
+        .detail-info h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .detail-info p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .action-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .action-btn.primary {
+            background: #1a73e8;
+            color: white;
+            border: none;
+        }
+
+        .action-btn.primary:hover {
+            background: #1557b0;
+        }
+
+        .action-btn.success {
+            background: #2e7d32;
+            color: white;
+            border: none;
+        }
+
+        .action-btn.success:hover {
+            background: #256029;
+        }
+
+        /* Detail Content */
+        .detail-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .card-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .card-btn.run {
+            background: #2e7d32;
+            color: white;
+            border: none;
+        }
+
+        .card-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Code View */
+        .code-view {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            padding: 18px;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .code-line {
+            display: flex;
+        }
+
+        .line-num {
+            color: #858585;
+            min-width: 44px;
+            padding-right: 18px;
+            text-align: right;
+            user-select: none;
+        }
+
+        .keyword { color: #569cd6; }
+        .function { color: #dcdcaa; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; }
+        .type { color: #4ec9b0; }
+
+        /* Test Results */
+        .test-results {
+            padding: 18px 20px;
+        }
+
+        .test-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 18px;
+        }
+
+        .test-score {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .test-score.pass { color: #2e7d32; }
+        .test-score.partial { color: #f57c00; }
+        .test-score.fail { color: #c62828; }
+
+        .test-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 14px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .test-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .test-icon.pass {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .test-icon.fail {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .test-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .test-time {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Feedback View */
+        .feedback-view {
+            padding: 20px;
+        }
+
+        .feedback-textarea {
+            width: 100%;
+            min-height: 220px;
+            padding: 16px;
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .feedback-tools {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .feedback-chip {
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .feedback-chip:hover {
+            background: #f5f9ff;
+            border-color: #1a73e8;
+        }
+
+        /* Score Section */
+        .score-section {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .score-value {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .final-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px;
+            background: #f5f9ff;
+            border-radius: 8px;
+            margin-top: 18px;
+        }
+
+        .final-label {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .final-input {
+            width: 90px;
+            padding: 10px 14px;
+            border: 2px solid #1a73e8;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 700;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        /* Grading Status Overlay */
+        .grading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .grading-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 44px;
+            text-align: center;
+            max-width: 420px;
+        }
+
+        .grading-spinner {
+            width: 64px;
+            height: 64px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 28px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .grading-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .grading-subtitle {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 28px;
+        }
+
+        .grading-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 14px;
+        }
+
+        .progress-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .progress-icon.done {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .progress-icon.active {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .progress-icon.pending {
+            background: #f5f5f5;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="back-btn">Back</button>
+            <div>
+                <div class="header-title">Batch Grading: Lab 5 - Binary Search</div>
+                <div class="header-subtitle">45 submissions selected</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 65%;"></div>
+                </div>
+                <span class="progress-text">29/45 completed</span>
+            </div>
+            <button class="header-btn pause">Pause</button>
+            <button class="header-btn cancel">Cancel</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Submissions List -->
+        <aside class="submissions-list">
+            <div class="list-header">
+                <div class="list-title">Submissions Queue</div>
+                <div class="list-filters">
+                    <button class="filter-btn active">All (45)</button>
+                    <button class="filter-btn">Graded (29)</button>
+                    <button class="filter-btn">Pending (16)</button>
+                </div>
+            </div>
+            <div class="submissions-scroll">
+                <!-- Graded items -->
+                <div class="submission-item graded">
+                    <div class="submission-header">
+                        <span class="student-name">James Rawat</span>
+                        <span class="status-indicator graded"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 4:11 PM</span>
+                        <span class="score-preview">92/100</span>
+                    </div>
+                </div>
+                <div class="submission-item graded">
+                    <div class="submission-header">
+                        <span class="student-name">Varun Currie</span>
+                        <span class="status-indicator graded"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 3:45 PM</span>
+                        <span class="score-preview">88/100</span>
+                    </div>
+                </div>
+                <div class="submission-item graded">
+                    <div class="submission-header">
+                        <span class="student-name">Benjamin Torres</span>
+                        <span class="status-indicator graded"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 5:20 PM</span>
+                        <span class="score-preview">75/100</span>
+                    </div>
+                </div>
+
+                <!-- Currently grading -->
+                <div class="submission-item active grading">
+                    <div class="submission-header">
+                        <span class="student-name">Carlos Martinez</span>
+                        <span class="status-indicator grading"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 6:00 PM</span>
+                        <span style="color: #f57c00; font-weight: 500;">Grading...</span>
+                    </div>
+                </div>
+
+                <!-- Pending items -->
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <span class="student-name">David Chen</span>
+                        <span class="status-indicator pending"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 6:15 PM</span>
+                        <span style="color: #666;">Pending</span>
+                    </div>
+                </div>
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <span class="student-name">Emily Davis</span>
+                        <span class="status-indicator pending"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 7:00 PM</span>
+                        <span style="color: #666;">Pending</span>
+                    </div>
+                </div>
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <span class="student-name">Frank Wilson</span>
+                        <span class="status-indicator pending"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 7:30 PM</span>
+                        <span style="color: #666;">Pending</span>
+                    </div>
+                </div>
+                <div class="submission-item" style="background: #ffebee;">
+                    <div class="submission-header">
+                        <span class="student-name">Grace Kim</span>
+                        <span class="status-indicator error"></span>
+                    </div>
+                    <div class="submission-meta">
+                        <span>Jan 22, 8:00 PM</span>
+                        <span style="color: #c62828; font-weight: 500;">Error</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Detail Panel -->
+        <main class="detail-panel">
+            <div class="detail-header">
+                <div class="detail-student">
+                    <div class="avatar">CM</div>
+                    <div class="detail-info">
+                        <h2>Carlos Martinez</h2>
+                        <p>Submitted Jan 22, 2026 6:00 PM | 3 files | 4.2 KB</p>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button class="action-btn">View History</button>
+                    <button class="action-btn">Re-grade</button>
+                    <button class="action-btn">Edit Score</button>
+                    <button class="action-btn success">Approve & Next</button>
+                </div>
+            </div>
+
+            <div class="detail-content">
+                <!-- Code View -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <span class="card-title">main.py</span>
+                        <div class="card-actions">
+                            <button class="card-btn">helper.py</button>
+                            <button class="card-btn">test_main.py</button>
+                            <button class="card-btn run">Run</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="code-view">
+                            <div class="code-line"><span class="line-num">1</span><span class="keyword">def</span> <span class="function">binary_search</span>(arr: <span class="type">list</span>, target: <span class="type">int</span>) -> <span class="type">int</span>:</div>
+                            <div class="code-line"><span class="line-num">2</span>    <span class="string">"""</span></div>
+                            <div class="code-line"><span class="line-num">3</span>    <span class="string">Perform binary search on sorted array.</span></div>
+                            <div class="code-line"><span class="line-num">4</span>    <span class="string">Returns index of target or -1 if not found.</span></div>
+                            <div class="code-line"><span class="line-num">5</span>    <span class="string">"""</span></div>
+                            <div class="code-line"><span class="line-num">6</span>    left, right = <span class="string">0</span>, <span class="function">len</span>(arr) - <span class="string">1</span></div>
+                            <div class="code-line"><span class="line-num">7</span>    </div>
+                            <div class="code-line"><span class="line-num">8</span>    <span class="keyword">while</span> left <= right:</div>
+                            <div class="code-line"><span class="line-num">9</span>        mid = (left + right) // <span class="string">2</span></div>
+                            <div class="code-line"><span class="line-num">10</span>        </div>
+                            <div class="code-line"><span class="line-num">11</span>        <span class="keyword">if</span> arr[mid] == target:</div>
+                            <div class="code-line"><span class="line-num">12</span>            <span class="keyword">return</span> mid</div>
+                            <div class="code-line"><span class="line-num">13</span>        <span class="keyword">elif</span> arr[mid] < target:</div>
+                            <div class="code-line"><span class="line-num">14</span>            left = mid + <span class="string">1</span></div>
+                            <div class="code-line"><span class="line-num">15</span>        <span class="keyword">else</span>:</div>
+                            <div class="code-line"><span class="line-num">16</span>            right = mid - <span class="string">1</span></div>
+                            <div class="code-line"><span class="line-num">17</span>    </div>
+                            <div class="code-line"><span class="line-num">18</span>    <span class="keyword">return</span> -<span class="string">1</span></div>
+                            <div class="code-line"><span class="line-num">19</span></div>
+                            <div class="code-line"><span class="line-num">20</span><span class="keyword">def</span> <span class="function">binary_search_recursive</span>(arr, target, left, right):</div>
+                            <div class="code-line"><span class="line-num">21</span>    <span class="keyword">if</span> left > right:</div>
+                            <div class="code-line"><span class="line-num">22</span>        <span class="keyword">return</span> -<span class="string">1</span></div>
+                            <div class="code-line"><span class="line-num">23</span>    </div>
+                            <div class="code-line"><span class="line-num">24</span>    mid = (left + right) // <span class="string">2</span></div>
+                            <div class="code-line"><span class="line-num">25</span>    </div>
+                            <div class="code-line"><span class="line-num">26</span>    <span class="keyword">if</span> arr[mid] == target:</div>
+                            <div class="code-line"><span class="line-num">27</span>        <span class="keyword">return</span> mid</div>
+                            <div class="code-line"><span class="line-num">28</span>    <span class="keyword">elif</span> arr[mid] < target:</div>
+                            <div class="code-line"><span class="line-num">29</span>        <span class="keyword">return</span> <span class="function">binary_search_recursive</span>(arr, target, mid + <span class="string">1</span>, right)</div>
+                            <div class="code-line"><span class="line-num">30</span>    <span class="keyword">else</span>:</div>
+                            <div class="code-line"><span class="line-num">31</span>        <span class="keyword">return</span> <span class="function">binary_search_recursive</span>(arr, target, left, mid - <span class="string">1</span>)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results & Feedback -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <span class="card-title">Test Results</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="test-results">
+                            <div class="test-summary">
+                                <span>Tests Passed</span>
+                                <span class="test-score partial">8/10</span>
+                            </div>
+                            <div class="test-list">
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_empty_array</span>
+                                    <span class="test-time">0.002s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_single_element_found</span>
+                                    <span class="test-time">0.001s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_single_element_not_found</span>
+                                    <span class="test-time">0.001s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_target_at_beginning</span>
+                                    <span class="test-time">0.001s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_target_at_end</span>
+                                    <span class="test-time">0.001s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_target_in_middle</span>
+                                    <span class="test-time">0.001s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_recursive_implementation</span>
+                                    <span class="test-time">0.003s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon pass">P</span>
+                                    <span class="test-name">test_large_array</span>
+                                    <span class="test-time">0.015s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon fail">F</span>
+                                    <span class="test-name">test_negative_numbers</span>
+                                    <span class="test-time">0.002s</span>
+                                </div>
+                                <div class="test-item">
+                                    <span class="test-icon fail">F</span>
+                                    <span class="test-name">test_duplicate_elements</span>
+                                    <span class="test-time">0.002s</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Feedback -->
+                <div class="content-card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <span class="card-title">AI-Generated Feedback</span>
+                        <div class="card-actions">
+                            <button class="card-btn">Regenerate</button>
+                            <button class="card-btn" style="background: #1a73e8; color: white; border: none;">Accept</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="feedback-view">
+                            <textarea class="feedback-textarea">Great implementation of binary search! Here's my feedback:
+
+STRENGTHS:
+- Clean, well-documented code with proper type hints
+- Correct implementation of iterative binary search with O(log n) complexity
+- Good inclusion of recursive implementation showing understanding of both approaches
+- Proper handling of edge cases for empty arrays and single elements
+
+AREAS FOR IMPROVEMENT:
+- The implementation doesn't correctly handle arrays with negative numbers. Consider the edge case where arr = [-5, -2, 0, 3, 7] and target = -2
+- When duplicate elements exist, the function returns one occurrence but doesn't specify which one. Consider documenting this behavior or implementing a variant that finds the first/last occurrence
+
+SUGGESTIONS:
+- Add input validation to verify the array is sorted before searching
+- Consider using (left + (right - left) // 2) instead of (left + right) // 2 to prevent potential integer overflow in other languages
+
+Overall, solid work demonstrating good understanding of the algorithm!</textarea>
+                            <div class="feedback-tools">
+                                <button class="feedback-chip">+ Add praise</button>
+                                <button class="feedback-chip">+ Add improvement</button>
+                                <button class="feedback-chip">+ Reference line</button>
+                                <button class="feedback-chip">+ Add resource link</button>
+                            </div>
+                        </div>
+                        <div class="score-section">
+                            <div class="score-row">
+                                <span class="score-label">Test Cases (70%)</span>
+                                <span class="score-value">56/70</span>
+                            </div>
+                            <div class="score-row">
+                                <span class="score-label">Code Quality (15%)</span>
+                                <span class="score-value">14/15</span>
+                            </div>
+                            <div class="score-row">
+                                <span class="score-label">Documentation (15%)</span>
+                                <span class="score-value">15/15</span>
+                            </div>
+                            <div class="final-score">
+                                <span class="final-label">Final Score</span>
+                                <input type="text" class="final-input" value="85">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Grading Overlay (shown during AI processing) -->
+    <div class="grading-overlay" id="gradingOverlay">
+        <div class="grading-modal">
+            <div class="grading-spinner"></div>
+            <div class="grading-title">Grading in Progress</div>
+            <div class="grading-subtitle">Processing Carlos Martinez's submission...</div>
+            <div class="grading-progress">
+                <div class="progress-item">
+                    <span class="progress-icon done">D</span>
+                    <span>Extracting files</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-icon done">D</span>
+                    <span>Running test cases</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-icon active">...</span>
+                    <span>Analyzing code quality</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-icon pending">-</span>
+                    <span>Generating feedback</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-icon pending">-</span>
+                    <span>Computing final score</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

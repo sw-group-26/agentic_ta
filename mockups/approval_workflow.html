@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic TA - Review & Approval</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            color: #1a1a1a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            padding: 10px 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .back-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .status-summary {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.pending { background: #2196f3; }
+        .status-dot.approved { background: #4caf50; }
+        .status-dot.published { background: #9c27b0; }
+        .status-dot.review { background: #ff9800; }
+
+        .header-btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: #4caf50;
+            color: white;
+        }
+
+        .header-btn:hover {
+            background: #43a047;
+        }
+
+        .main-content {
+            display: flex;
+            height: calc(100vh - 68px);
+        }
+
+        /* Left Panel */
+        .submissions-panel {
+            width: 340px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+            font-weight: 500;
+        }
+
+        .filter-tab:hover {
+            background: #f5f5f5;
+        }
+
+        .filter-tab.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+
+        .submissions-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .group-header {
+            padding: 10px 18px;
+            background: #f8f9fa;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .select-all {
+            color: #1a73e8;
+            cursor: pointer;
+            text-transform: none;
+            font-weight: 500;
+            letter-spacing: normal;
+        }
+
+        .submission-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            gap: 12px;
+        }
+
+        .submission-item:hover {
+            background: #f8f9fa;
+        }
+
+        .submission-item.selected {
+            background: #e8f0fe;
+            border-left: 3px solid #1a73e8;
+        }
+
+        .submission-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .submission-info {
+            flex: 1;
+        }
+
+        .submission-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #1a1a1a;
+        }
+
+        .submission-meta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .submission-score {
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .submission-score.high { color: #2e7d32; }
+        .submission-score.medium { color: #f57c00; }
+        .submission-score.low { color: #c62828; }
+
+        .submission-status {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .submission-status.pending { background: #e3f2fd; color: #1565c0; }
+        .submission-status.approved { background: #e8f5e9; color: #2e7d32; }
+        .submission-status.review { background: #fff3e0; color: #e65100; }
+
+        .bulk-actions {
+            padding: 14px 18px;
+            border-top: 1px solid #e0e0e0;
+            background: #fafafa;
+            display: flex;
+            gap: 10px;
+        }
+
+        .bulk-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .bulk-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .bulk-btn.approve {
+            background: #4caf50;
+            color: white;
+            border: none;
+        }
+
+        .bulk-btn.approve:hover {
+            background: #43a047;
+        }
+
+        .bulk-btn.publish {
+            background: #7b1fa2;
+            color: white;
+            border: none;
+        }
+
+        .bulk-btn.publish:hover {
+            background: #6a1b9a;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            padding: 18px 24px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-student {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            background: #1a73e8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .detail-info h2 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: #1a1a1a;
+        }
+
+        .detail-info p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .action-btn:hover { background: #f5f5f5; }
+        .action-btn.approve { background: #4caf50; color: white; border: none; }
+        .action-btn.approve:hover { background: #43a047; }
+        .action-btn.publish { background: #7b1fa2; color: white; border: none; }
+        .action-btn.publish:hover { background: #6a1b9a; }
+        .action-btn.reject { color: #c62828; border-color: #c62828; }
+        .action-btn.reject:hover { background: #ffebee; }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .card-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .card-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .card-content {
+            padding: 18px;
+        }
+
+        /* Score Section */
+        .score-comparison {
+            display: flex;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .score-box {
+            flex: 1;
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .score-box.ai-score {
+            background: #f5f9ff;
+            border: 1px solid #e3f2fd;
+        }
+
+        .score-box.final-score {
+            background: #f1f8e9;
+            border: 2px solid #4caf50;
+        }
+
+        .score-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .score-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .score-box.ai-score .score-value { color: #1565c0; }
+        .score-box.final-score .score-value { color: #2e7d32; }
+
+        .score-input {
+            width: 80px;
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+            border: none;
+            background: transparent;
+            color: #2e7d32;
+            font-family: inherit;
+        }
+
+        .score-change {
+            font-size: 13px;
+            margin-top: 6px;
+            color: #666;
+        }
+
+        /* Rubric Table */
+        .rubric-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .rubric-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+            color: #444;
+        }
+
+        .rubric-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .rubric-table input {
+            width: 50px;
+            padding: 6px;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        /* Confidence */
+        .confidence-section {
+            margin-top: 18px;
+            padding: 14px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .confidence-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .confidence-value.high { color: #2e7d32; font-weight: 600; }
+        .confidence-value.medium { color: #f57c00; font-weight: 600; }
+
+        .confidence-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .confidence-fill.high { background: #4caf50; }
+        .confidence-fill.medium { background: #ff9800; }
+
+        /* Test Results */
+        .test-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .test-item.pass { background: #f1f8e9; }
+        .test-item.fail { background: #ffebee; }
+
+        .test-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .test-status.pass {
+            color: #2e7d32;
+            background: #c8e6c9;
+        }
+        .test-status.fail {
+            color: #c62828;
+            background: #ffcdd2;
+        }
+
+        .test-name { flex: 1; }
+        .test-time { color: #888; font-size: 13px; }
+
+        /* Feedback */
+        .feedback-section {
+            grid-column: span 2;
+        }
+
+        .feedback-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 14px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .feedback-tools {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .feedback-tool {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .feedback-tool:hover { background: #f5f5f5; }
+        .feedback-tool.primary { color: #1a73e8; border-color: #1a73e8; }
+        .feedback-tool.primary:hover { background: #f5f9ff; }
+
+        /* Footer */
+        .workflow-footer {
+            padding: 14px 24px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: white;
+        }
+
+        .nav-btn:hover { background: #f5f5f5; }
+
+        .nav-count {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .footer-actions {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <button class="back-btn">Back</button>
+            <div>
+                <div class="header-title">Review & Approve Grades - Lab 5</div>
+                <div class="header-subtitle">Review AI-generated grades before publishing</div>
+            </div>
+        </div>
+        <div class="status-summary">
+            <div class="status-item">
+                <span class="status-dot pending"></span>
+                <span>Pending: 13</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot approved"></span>
+                <span>Approved: 32</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot review"></span>
+                <span>Needs Review: 5</span>
+            </div>
+        </div>
+        <button class="header-btn">Publish All Approved</button>
+    </header>
+
+    <div class="main-content">
+        <aside class="submissions-panel">
+            <div class="panel-header">
+                <div class="panel-title">Submissions (45)</div>
+                <div class="filter-tabs">
+                    <button class="filter-tab">All</button>
+                    <button class="filter-tab active">Pending</button>
+                    <button class="filter-tab">Approved</button>
+                </div>
+            </div>
+
+            <div class="submissions-list">
+                <div class="group-header">
+                    <span>Needs Review</span>
+                    <span class="select-all">Select All</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">David Chen</div>
+                        <div class="submission-meta">
+                            <span class="submission-score medium">67/100</span>
+                            <span>Low confidence</span>
+                        </div>
+                    </div>
+                    <span class="submission-status review">Review</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">James Wilson</div>
+                        <div class="submission-meta">
+                            <span class="submission-score high">89/100</span>
+                            <span>Similarity flag</span>
+                        </div>
+                    </div>
+                    <span class="submission-status review">Review</span>
+                </div>
+
+                <div class="group-header">
+                    <span>Graded - Pending Approval</span>
+                    <span class="select-all">Select All</span>
+                </div>
+                <div class="submission-item selected">
+                    <input type="checkbox" class="submission-checkbox" checked>
+                    <div class="submission-info">
+                        <div class="submission-name">Carlos Martinez</div>
+                        <div class="submission-meta">
+                            <span class="submission-score high">85/100</span>
+                            <span>High confidence</span>
+                        </div>
+                    </div>
+                    <span class="submission-status pending">Pending</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">Emily Davis</div>
+                        <div class="submission-meta">
+                            <span class="submission-score high">92/100</span>
+                            <span>High confidence</span>
+                        </div>
+                    </div>
+                    <span class="submission-status pending">Pending</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">Frank Wilson</div>
+                        <div class="submission-meta">
+                            <span class="submission-score medium">76/100</span>
+                            <span>High confidence</span>
+                        </div>
+                    </div>
+                    <span class="submission-status pending">Pending</span>
+                </div>
+
+                <div class="group-header">
+                    <span>Approved - Ready to Publish</span>
+                    <span class="select-all">Select All</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">Sarah Park</div>
+                        <div class="submission-meta">
+                            <span class="submission-score high">92/100</span>
+                            <span>Approved</span>
+                        </div>
+                    </div>
+                    <span class="submission-status approved">Approved</span>
+                </div>
+                <div class="submission-item">
+                    <input type="checkbox" class="submission-checkbox">
+                    <div class="submission-info">
+                        <div class="submission-name">Michael Brown</div>
+                        <div class="submission-meta">
+                            <span class="submission-score high">88/100</span>
+                            <span>Approved</span>
+                        </div>
+                    </div>
+                    <span class="submission-status approved">Approved</span>
+                </div>
+            </div>
+
+            <div class="bulk-actions">
+                <button class="bulk-btn approve">Approve Selected</button>
+                <button class="bulk-btn publish">Publish Selected</button>
+            </div>
+        </aside>
+
+        <main class="detail-panel">
+            <div class="detail-header">
+                <div class="detail-student">
+                    <div class="avatar">CM</div>
+                    <div class="detail-info">
+                        <h2>Carlos Martinez</h2>
+                        <p>Submitted Jan 22, 2026 6:00 PM | 3 files</p>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button class="action-btn reject">Reject</button>
+                    <button class="action-btn">Re-grade</button>
+                    <button class="action-btn approve">Approve</button>
+                    <button class="action-btn publish">Approve & Publish</button>
+                </div>
+            </div>
+
+            <div class="detail-content">
+                <div class="content-card">
+                    <div class="card-header">
+                        <span class="card-title">Score</span>
+                        <span class="card-badge">AI Graded</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="score-comparison">
+                            <div class="score-box ai-score">
+                                <div class="score-label">AI Suggested</div>
+                                <div class="score-value">85</div>
+                            </div>
+                            <div class="score-box final-score">
+                                <div class="score-label">Final Score</div>
+                                <input type="text" class="score-input" value="85">
+                                <div class="score-change">No change</div>
+                            </div>
+                        </div>
+
+                        <table class="rubric-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>AI</th>
+                                    <th>Final</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Correctness</td>
+                                    <td>56</td>
+                                    <td><input type="number" value="56"></td>
+                                    <td>70</td>
+                                </tr>
+                                <tr>
+                                    <td>Code Quality</td>
+                                    <td>14</td>
+                                    <td><input type="number" value="14"></td>
+                                    <td>15</td>
+                                </tr>
+                                <tr>
+                                    <td>Documentation</td>
+                                    <td>15</td>
+                                    <td><input type="number" value="15"></td>
+                                    <td>15</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="confidence-section">
+                            <div class="confidence-header">
+                                <span>AI Confidence</span>
+                                <span class="confidence-value high">High (92%)</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill high" style="width: 92%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="card-header">
+                        <span class="card-title">Test Results</span>
+                        <span style="font-size: 14px; color: #2e7d32; font-weight: 600;">8/10 Passed</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="test-list">
+                            <div class="test-item pass">
+                                <span class="test-status pass">PASS</span>
+                                <span class="test-name">test_target_found</span>
+                                <span class="test-time">0.002s</span>
+                            </div>
+                            <div class="test-item pass">
+                                <span class="test-status pass">PASS</span>
+                                <span class="test-name">test_target_not_found</span>
+                                <span class="test-time">0.001s</span>
+                            </div>
+                            <div class="test-item pass">
+                                <span class="test-status pass">PASS</span>
+                                <span class="test-name">test_empty_array</span>
+                                <span class="test-time">0.001s</span>
+                            </div>
+                            <div class="test-item pass">
+                                <span class="test-status pass">PASS</span>
+                                <span class="test-name">test_single_element</span>
+                                <span class="test-time">0.001s</span>
+                            </div>
+                            <div class="test-item pass">
+                                <span class="test-status pass">PASS</span>
+                                <span class="test-name">test_large_array</span>
+                                <span class="test-time">0.015s</span>
+                            </div>
+                            <div class="test-item fail">
+                                <span class="test-status fail">FAIL</span>
+                                <span class="test-name">test_negative_numbers</span>
+                                <span class="test-time">0.002s</span>
+                            </div>
+                            <div class="test-item fail">
+                                <span class="test-status fail">FAIL</span>
+                                <span class="test-name">test_duplicate_elements</span>
+                                <span class="test-time">0.002s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card feedback-section">
+                    <div class="card-header">
+                        <span class="card-title">Feedback to Student</span>
+                        <span class="card-badge">AI Generated</span>
+                    </div>
+                    <div class="card-content">
+                        <textarea class="feedback-textarea">Good implementation of binary search.
+
+STRENGTHS:
+- Clean code with proper type hints
+- Correct iterative implementation with O(log n) complexity
+- Good handling of edge cases for empty arrays and single elements
+
+AREAS FOR IMPROVEMENT:
+- Does not correctly handle arrays with negative numbers
+- When duplicate elements exist, behavior is undefined
+
+SUGGESTIONS:
+- Add input validation to verify the array is sorted
+- Consider using (left + (right - left) // 2) to prevent integer overflow
+
+Score: 85/100</textarea>
+                        <div class="feedback-tools">
+                            <button class="feedback-tool primary">Regenerate</button>
+                            <button class="feedback-tool">Add Comment</button>
+                            <button class="feedback-tool">View Code</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workflow-footer">
+                <div class="footer-nav">
+                    <button class="nav-btn">Previous</button>
+                    <span class="nav-count">12 of 45</span>
+                    <button class="nav-btn">Next</button>
+                </div>
+                <div class="footer-actions">
+                    <button class="action-btn">Skip</button>
+                    <button class="action-btn approve">Approve & Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iCollege - Agentic TA Integration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #1a1a1a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .icollege-logo {
+            color: #c41230;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .course-name {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: #0066cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            padding: 0 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .nav ul {
+            display: flex;
+            list-style: none;
+            gap: 28px;
+        }
+
+        .nav li {
+            padding: 14px 0;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .nav li:hover {
+            color: #0066cc;
+        }
+
+        /* Main Content */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 110px);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .breadcrumb {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .breadcrumb a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+
+        /* Action Buttons */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d0d0d0;
+            background: #f8f8f8;
+        }
+
+        .btn:hover {
+            background: #eee;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+        }
+
+        /* Submissions Table */
+        .submissions-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            background: #f9f9f9;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            gap: 10px;
+        }
+
+        .submission-row {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .submission-row:last-child {
+            border-bottom: none;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            padding: 16px 18px;
+            gap: 14px;
+        }
+
+        .student-name {
+            color: #0066cc;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 18px;
+            font-size: 13px;
+        }
+
+        .submission-actions a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px 12px 48px;
+            background: #fafafa;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .file-link {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .submission-date {
+            color: #666;
+            margin-left: auto;
+        }
+
+        /* AGENTIC TA PANEL */
+        .agentic-ta-panel {
+            width: 50%;
+            min-width: 600px;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 18px 24px;
+            background: #1a73e8;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .panel-collapse {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .quick-action-btn {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .quick-action-btn:hover {
+            background: #f5f9ff;
+            border-color: #1a73e8;
+        }
+
+        .quick-action-btn.primary {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+
+        .quick-action-btn.primary:hover {
+            background: #1557b0;
+        }
+
+        /* Grading Section */
+        .grading-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .section-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-graded {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        /* Selected Student Card */
+        .selected-student {
+            background: #f5f9ff;
+            border: 1px solid #1a73e8;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .student-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            background: #1a73e8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .student-details h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .student-details p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .submission-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Code Preview */
+        .code-preview {
+            background: #1e1e1e;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background: #2d2d2d;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .code-filename {
+            color: #9cdcfe;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-action-btn {
+            background: #3c3c3c;
+            border: none;
+            color: #ccc;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .code-action-btn.run {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .code-content {
+            padding: 14px;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .line-number {
+            color: #858585;
+            min-width: 28px;
+            display: inline-block;
+        }
+
+        .keyword { color: #569cd6; }
+        .function { color: #dcdcaa; }
+        .string { color: #ce9178; }
+
+        /* Test Results */
+        .test-results {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .test-header {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-summary {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-pass { color: #2e7d32; font-weight: 600; }
+        .test-fail { color: #c62828; font-weight: 600; }
+
+        /* Score Section */
+        .score-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .score-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-field {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .score-max {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auto-score {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* AI Feedback Section */
+        .feedback-section {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .feedback-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .feedback-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .feedback-content {
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .feedback-item {
+            margin-bottom: 12px;
+            padding-left: 18px;
+            position: relative;
+        }
+
+        .feedback-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .feedback-positive::before { background: #2e7d32; }
+        .feedback-suggestion::before { background: #f9a825; }
+        .feedback-issue::before { background: #c62828; }
+
+        .feedback-actions {
+            padding: 12px 16px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .feedback-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .feedback-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .feedback-btn.primary {
+            background: #1a73e8;
+            color: white;
+            border: none;
+        }
+
+        .feedback-btn.primary:hover {
+            background: #1557b0;
+        }
+
+        /* Analytics Card */
+        .analytics-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .analytics-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .analytics-item {
+            text-align: center;
+        }
+
+        .analytics-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .analytics-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .analytics-value.warning { color: #f57c00; }
+        .analytics-value.danger { color: #c62828; }
+
+        /* Footer Actions */
+        .panel-footer {
+            padding: 18px 24px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .footer-btn.publish {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .footer-btn.publish:hover {
+            background: #256029;
+        }
+
+        .footer-btn.next {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .footer-btn.next:hover {
+            background: #1557b0;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <span class="icollege-logo">iCollege</span>
+            <span class="course-name">COMPUTER ORG PROGRAMMING X...</span>
+        </div>
+        <div class="header-right">
+            <div class="user-avatar">MA</div>
+            <span style="font-size: 14px; font-weight: 500;">Mansoor Ahmed</span>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <ul>
+            <li>Content</li>
+            <li>Collaboration</li>
+            <li>Assessments</li>
+            <li>Grades</li>
+            <li>Classlist</li>
+            <li>Course Tools</li>
+        </ul>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Content Area (Existing iCollege UI) -->
+        <div class="content-area">
+            <div class="breadcrumb">
+                <a href="#">Assignments</a> > <a href="#">lab1</a> > Submissions
+            </div>
+
+            <h1 class="page-title">lab1 - Submissions</h1>
+
+            <div class="action-bar">
+                <button class="btn">Publish All</button>
+                <button class="btn">Edit Assignment</button>
+                <button class="btn">Email Users Without Submissions</button>
+                <button class="btn">Add Feedback Files</button>
+                <button class="btn">More Actions</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active">Users</div>
+                <div class="tab">Submissions</div>
+            </div>
+
+            <!-- Submissions Table -->
+            <div class="submissions-table">
+                <div class="table-header">
+                    <input type="checkbox">
+                    <span style="flex:1">Learner</span>
+                    <span style="width:160px">Submission Date</span>
+                    <span style="width:80px">Delete</span>
+                </div>
+
+                <!-- Student 1 - Selected -->
+                <div class="submission-row" style="background: #f5f9ff;">
+                    <div class="student-info">
+                        <input type="checkbox" checked>
+                        <span class="student-name">Fin Rawat</span>
+                        <div class="submission-actions">
+                            <a href="#">Go to Evaluation</a>
+                            <span style="color: #2e7d32; font-weight: 500;">Published</span>
+                        </div>
+                    </div>
+                    <div class="file-row">
+                        <a href="#" class="file-link">lab1.zip</a>
+                        <span>(4.15 KB)</span>
+                        <span class="submission-date">Jan 22, 2026 4:11 PM</span>
+                    </div>
+                </div>
+
+                <!-- Student 2 -->
+                <div class="submission-row">
+                    <div class="student-info">
+                        <input type="checkbox">
+                        <span class="student-name">Marrie Currie</span>
+                        <div class="submission-actions">
+                            <a href="#">Go to Evaluation</a>
+                            <span style="color: #2e7d32; font-weight: 500;">Published</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student 3 -->
+                <div class="submission-row">
+                    <div class="student-info">
+                        <input type="checkbox">
+                        <span class="student-name">Benjamin Torres</span>
+                        <div class="submission-actions">
+                            <a href="#">Go to Evaluation</a>
+                            <span style="color: #666">Not Graded</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student 4 -->
+                <div class="submission-row">
+                    <div class="student-info">
+                        <input type="checkbox">
+                        <span class="student-name">Carlos Martinez</span>
+                        <div class="submission-actions">
+                            <a href="#">Go to Evaluation</a>
+                            <span style="color: #666">Not Graded</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student 5 - Flagged -->
+                <div class="submission-row" style="background: #fff8e1;">
+                    <div class="student-info">
+                        <input type="checkbox">
+                        <span class="student-name">David Chen <span style="color: #f57c00; font-size: 12px; font-weight: 500;">(Similarity Alert)</span></span>
+                        <div class="submission-actions">
+                            <a href="#">Go to Evaluation</a>
+                            <span style="color: #666">Not Graded</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AGENTIC TA PANEL -->
+        <aside class="agentic-ta-panel">
+            <div class="panel-header">
+                <div class="panel-title">Agentic TA</div>
+                <button class="panel-collapse">x</button>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="quick-action-btn primary">Grade Selected</button>
+                <button class="quick-action-btn">Grade All</button>
+                <button class="quick-action-btn">Analytics</button>
+                <button class="quick-action-btn">Settings</button>
+            </div>
+
+            <!-- Grading Section -->
+            <div class="grading-section">
+                <div class="section-header">
+                    Currently Grading
+                    <span class="status-badge status-pending">In Progress</span>
+                </div>
+
+                <!-- Selected Student -->
+                <div class="selected-student">
+                    <div class="student-header">
+                        <div class="student-avatar">AR</div>
+                        <div class="student-details">
+                            <h4>Fin Rawat</h4>
+                            <p>Submitted Jan 22, 2026 4:11 PM</p>
+                        </div>
+                    </div>
+                    <div class="submission-meta">
+                        <span>lab1.zip (4.15 KB)</span>
+                        <span>3 files</span>
+                    </div>
+                </div>
+
+                <!-- Code Preview -->
+                <div class="code-preview">
+                    <div class="code-header">
+                        <span class="code-filename">main.py</span>
+                        <div class="code-actions">
+                            <button class="code-action-btn">Expand</button>
+                            <button class="code-action-btn run">Run</button>
+                        </div>
+                    </div>
+                    <div class="code-content">
+                        <div><span class="line-number">1</span><span class="keyword">def</span> <span class="function">binary_search</span>(arr, target):</div>
+                        <div><span class="line-number">2</span>    left, right = 0, len(arr) - 1</div>
+                        <div><span class="line-number">3</span>    <span class="keyword">while</span> left <= right:</div>
+                        <div><span class="line-number">4</span>        mid = (left + right) // 2</div>
+                        <div><span class="line-number">5</span>        <span class="keyword">if</span> arr[mid] == target:</div>
+                        <div><span class="line-number">6</span>            <span class="keyword">return</span> mid</div>
+                    </div>
+                </div>
+
+                <!-- Test Results -->
+                <div class="test-results">
+                    <div class="test-header">
+                        Test Results
+                        <span class="test-summary">8/10 Passed</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="test-pass">PASS</span>
+                        <span>test_empty_array</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="test-pass">PASS</span>
+                        <span>test_single_element</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="test-pass">PASS</span>
+                        <span>test_target_found</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="test-fail">FAIL</span>
+                        <span>test_negative_numbers</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="test-fail">FAIL</span>
+                        <span>test_large_array</span>
+                    </div>
+                </div>
+
+                <!-- Score Section -->
+                <div class="score-section">
+                    <div class="score-input">
+                        <input type="text" class="score-field" value="85">
+                        <span class="score-max">/ 100</span>
+                    </div>
+                    <span class="auto-score">AI Suggested: 85</span>
+                </div>
+
+                <!-- AI Feedback -->
+                <div class="feedback-section">
+                    <div class="feedback-header">
+                        <div class="feedback-title">Generated Feedback</div>
+                        <span style="font-size: 12px; color: #666;">Editable</span>
+                    </div>
+                    <div class="feedback-content">
+                        <div class="feedback-item feedback-positive">
+                            <strong>Well done!</strong> Your binary search implementation is correct and efficient with O(log n) time complexity.
+                        </div>
+                        <div class="feedback-item feedback-positive">
+                            Good use of the two-pointer technique with clear variable naming.
+                        </div>
+                        <div class="feedback-item feedback-issue">
+                            <strong>Issue:</strong> The function doesn't handle negative numbers correctly.
+                        </div>
+                        <div class="feedback-item feedback-suggestion">
+                            <strong>Suggestion:</strong> Add input validation to check if the array is sorted.
+                        </div>
+                    </div>
+                    <div class="feedback-actions">
+                        <button class="feedback-btn">Regenerate</button>
+                        <button class="feedback-btn">Edit</button>
+                        <button class="feedback-btn primary">Accept</button>
+                    </div>
+                </div>
+
+                <!-- Analytics Card -->
+                <div class="analytics-card">
+                    <div class="analytics-header">Class Progress - lab1</div>
+                    <div class="analytics-grid">
+                        <div class="analytics-item">
+                            <div class="analytics-value">45</div>
+                            <div class="analytics-label">Submitted</div>
+                        </div>
+                        <div class="analytics-item">
+                            <div class="analytics-value">32</div>
+                            <div class="analytics-label">Graded</div>
+                        </div>
+                        <div class="analytics-item">
+                            <div class="analytics-value warning">3</div>
+                            <div class="analytics-label">Flagged</div>
+                        </div>
+                        <div class="analytics-item">
+                            <div class="analytics-value danger">5</div>
+                            <div class="analytics-label">At Risk</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="panel-footer">
+                <button class="footer-btn publish">Publish Feedback</button>
+                <button class="footer-btn next">Next Student</button>
+            </div>
+        </aside>
+    </div>
+</body>
+</html>
