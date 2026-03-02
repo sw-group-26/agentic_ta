@@ -10,10 +10,11 @@ Module dependency graph (downstream consumers):
     config.py  -->  models.py       (Pydantic models reference StrEnums)
                -->  students.py     (uses NUM_STUDENTS, create_rng)
                -->  assignments.py  (uses AssignmentDef, NUM_ASSIGNMENTS)
-               -->  code_gen.py     (uses FILE_SIZE_PYTHON, ArtifactType)
-               -->  zip_gen.py      (uses FILE_SIZE_ZIP, ASSIGNMENTS_DIR)
-               -->  pdf_gen.py      (uses FILE_SIZE_PDF)
-               -->  grading.py      (uses PASS_RATES, SCORE_ALPHA/BETA, RUNTIME_*)
+               -->  code_generator.py      (uses FILE_SIZE_PYTHON, ArtifactType)
+               -->  submission_builder.py  (uses FILE_SIZE_ZIP, ASSIGNMENTS_DIR)
+               -->  report_generator.py    (uses FILE_SIZE_PDF, ArtifactType)
+               -->  grading_engine.py      (uses PASS_RATES, SCORE_*,
+                                                RUNTIME_*)
                -->  similarity.py   (uses SimilarityMethod)
                -->  manifest.py     (uses OUTPUT_ROOT, METADATA_DIR)
                -->  generate_data.py (uses SeedDataConfig as the top-level config)
@@ -265,7 +266,7 @@ class SimilarityMethod(StrEnum):
         TOKEN_BASED:  Compares lexical token sequences (similar to MOSS).
         AST_BASED:    Compares abstract syntax tree structures for
                       deeper semantic similarity detection.
-        TEXT_BASED:    Simple text diff / edit-distance comparison
+        TEXT_BASED:   Simple text diff / edit-distance comparison
                       using rapidfuzz library.
     """
 
