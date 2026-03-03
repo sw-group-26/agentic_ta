@@ -17,6 +17,9 @@ Module dependency graph (downstream consumers):
                                                 RUNTIME_*)
                -->  plagiarism.py   (uses SimilarityMethod, TagType, TagSource)
                -->  manifest.py     (uses OUTPUT_ROOT, METADATA_DIR)
+               -->  validator.py    (uses ASSIGNMENTS_DIR, METADATA_DIR,
+                                         FILE_SIZE_*, NUM_*, LATE_RATE,
+                                         SUBMISSION_DISTRIBUTION, ArtifactType)
                -->  generate_data.py (uses SeedDataConfig as the top-level config)
 """
 
@@ -135,10 +138,11 @@ OUTPUT_ROOT: Path = Path("make_simul_data") / "output" / "seed_data"
 METADATA_DIR: Path = OUTPUT_ROOT / "metadata"
 
 # Directory for per-assignment submission folders.
-# Structure: ASSIGNMENTS_DIR / "HW1" / "S001_attempt1" / files...
+# Structure: ASSIGNMENTS_DIR / "HW1" / "S001" / "attempt1" / files...
 # Mirrors a realistic course file system layout.
-# Used by: zip_gen.py (to organize submission ZIP files per assignment),
-#          code_gen.py, pdf_gen.py (to place generated artifacts)
+# Used by: submission_builder.py (to organize submission ZIP files per assignment),
+#          code_generator.py, report_generator.py (to place generated artifacts),
+#          validator.py (to locate manifest.json files for QA checks)
 ASSIGNMENTS_DIR: Path = OUTPUT_ROOT / "intro_cs" / "Assignments"
 
 # ── Semester Timeline ────────────────────────────────────────────────────
