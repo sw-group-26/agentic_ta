@@ -32,10 +32,13 @@ include = ["agentic_ta*", "make_simul_data*"]
 [tool.black]
 line-length = 88
 target-version = ["py311"]
+force-exclude = "make_simul_data/make_simul_data/output"
 
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+exclude = ["make_simul_data/make_simul_data/output"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

@@ -1,0 +1,21 @@
+{
+  "submission_id": "4d25e2c9-7c92-4126-8360-2f67f6877b09",
+  "student_id": "S051",
+  "assignment_id": "HW1",
+  "attempt_no": 1,
+  "generated_at": "2026-03-03T03:57:47.022770Z",
+  "artifacts": [
+    {
+      "filename": "hw1_solution.py",
+      "artifact_type": "python_file",
+      "sha256": "8e923ae586d5a346fc562dc155922d80a0e0c9d577b84b6b5516dd7f20d57095",
+      "size_bytes": 1025
+    },
+    {
+      "filename": "S051_HW1_attempt1.zip",
+      "artifact_type": "zip_bundle",
+      "sha256": "64d82cf13d8d78cee826cd032cac1bdf0e08931bd24074fd944df9a13d40d15b",
+      "size_bytes": 259570
+    }
+  ]
+}
