@@ -384,9 +384,9 @@ class SimilarityScore(BaseModel):
     comparisons can be generated. In practice, only a subset is sampled
     to keep the dataset size manageable.
 
-    Created by: similarity.py (generates pairwise similarity scores
-                using rapidfuzz for text-based comparison, and simulated
-                scores for token-based and AST-based methods)
+    Created by: plagiarism.py (generates pairwise similarity scores
+                using rapidfuzz for text-based comparison, AST-based
+                structural comparison, and token-based comparison)
     Serialized to: metadata/similarity_scores.csv
 
     Attributes:

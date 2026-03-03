@@ -15,7 +15,7 @@ Module dependency graph (downstream consumers):
                -->  report_generator.py    (uses FILE_SIZE_PDF, ArtifactType)
                -->  grading_engine.py      (uses PASS_RATES, SCORE_*,
                                                 RUNTIME_*)
-               -->  similarity.py   (uses SimilarityMethod)
+               -->  plagiarism.py   (uses SimilarityMethod, TagType, TagSource)
                -->  manifest.py     (uses OUTPUT_ROOT, METADATA_DIR)
                -->  generate_data.py (uses SeedDataConfig as the top-level config)
 """
@@ -392,7 +392,7 @@ def create_rng(seed: int | None = None) -> random.Random:
              assignments.py (to vary assignment parameters),
              code_gen.py (to generate random code content),
              grading.py (to simulate scores and pass/fail outcomes),
-             similarity.py (to generate pairwise similarity scores),
+             plagiarism.py (to generate pairwise similarity scores),
              generate_data.py (to create per-module RNG instances
              derived from MASTER_SEED)
 
