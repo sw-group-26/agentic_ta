@@ -1,0 +1,27 @@
+{
+  "submission_id": "92bc9558-4905-468a-8f2b-4c40b07677c5",
+  "student_id": "S036",
+  "assignment_id": "HW3",
+  "attempt_no": 1,
+  "generated_at": "2026-03-03T03:57:46.996496Z",
+  "artifacts": [
+    {
+      "filename": "hw3_solution.py",
+      "artifact_type": "python_file",
+      "sha256": "0ec9505aee2b7966d0d76a3265e044981f016863eab8915f0007b9dc07b326a9",
+      "size_bytes": 1925
+    },
+    {
+      "filename": "S036_HW3_attempt1.zip",
+      "artifact_type": "zip_bundle",
+      "sha256": "0ce1474ca9eca001d29d137486ad0a0dab74c8dbbf20df59ec425e6cc00fcffd",
+      "size_bytes": 208735
+    },
+    {
+      "filename": "S036_HW3_attempt1_report.pdf",
+      "artifact_type": "pdf_report",
+      "sha256": "9c24da8359b8cc86a587ef5e5e95f6927bd322520d0cb14f9b8f363777b653d8",
+      "size_bytes": 242000
+    }
+  ]
+}

@@ -17,17 +17,28 @@ dev = [
     "pre-commit>=4.0.0",
     "pytest>=8.0.0",
 ]
+seed = [
+    "faker>=33.0.0",
+    "pandas>=2.2.0",
+    "reportlab>=4.2.0",
+    "Pillow>=11.0.0",
+    "rapidfuzz>=3.10.0",
+    "jsonschema>=4.23.0",
+]
 
 [tool.setuptools.packages.find]
-include = ["agentic_ta*"]
+include = ["agentic_ta*", "make_simul_data*"]
 
 [tool.black]
 line-length = 88
 target-version = ["py311"]
+force-exclude = "make_simul_data/make_simul_data/output"
 
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+exclude = ["make_simul_data/make_simul_data/output"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
@@ -37,4 +48,12 @@ select = ["E", "F", "I", "W"]
 # W = pycodestyle warnings
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentic_ta"]
+known-first-party = ["agentic_ta", "make_simul_data"]
+
+[tool.pytest.ini_options]
+testpaths = ["make_simul_data/tests"]
+filterwarnings = [
+    # TestCaseSpec is a frozen dataclass (not a pytest test class) whose name
+    # starts with "Test", triggering a harmless collection warning.
+    "ignore::pytest.PytestCollectionWarning",
+]

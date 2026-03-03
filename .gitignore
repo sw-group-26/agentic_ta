@@ -28,3 +28,9 @@ docker-compose.override.yml
 
 # AI Tools
 .claude/
+
+# Generated seed data / 생성된 시드 데이터
+make_simul_data/output/
+
+# Personal
+Wonbum/
