@@ -1,0 +1,32 @@
+[
+  {
+    "test_case_id": "HW1_TC01",
+    "passed": true,
+    "score_awarded": 20.0,
+    "output": "PASS"
+  },
+  {
+    "test_case_id": "HW1_TC02",
+    "passed": true,
+    "score_awarded": 20.0,
+    "output": "PASS"
+  },
+  {
+    "test_case_id": "HW1_TC03",
+    "passed": true,
+    "score_awarded": 20.0,
+    "output": "PASS"
+  },
+  {
+    "test_case_id": "HW1_TC04",
+    "passed": true,
+    "score_awarded": 20.0,
+    "output": "PASS"
+  },
+  {
+    "test_case_id": "HW1_TC05",
+    "passed": true,
+    "score_awarded": 20.0,
+    "output": "PASS"
+  }
+]
