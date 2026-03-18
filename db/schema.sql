@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS course_offering (
   year            INT  NOT NULL,          -- e.g., 2026
   section         TEXT,                   -- e.g., "002"
   instructor      TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(course_id, semester, year, COALESCE(section,''))
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- UNIQUE constraint with expression: section NULL treated as empty string
+CREATE UNIQUE INDEX IF NOT EXISTS ux_offering_course_semester_section
+  ON course_offering(course_id, semester, year, COALESCE(section,''));
 
 -- ===============
 -- People
