@@ -119,9 +119,11 @@ CREATE TABLE IF NOT EXISTS submission (
 CREATE TABLE IF NOT EXISTS submission_version (
   version_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   submission_id   UUID NOT NULL REFERENCES submission(submission_id) ON DELETE CASCADE,
+  attempt_no      INTEGER NOT NULL DEFAULT 1,  -- 1-based attempt number per submission
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   commit_hash     TEXT,
-  diff_summary    TEXT
+  diff_summary    TEXT,
+  UNIQUE(submission_id, attempt_no)            -- one version row per attempt
 );
 
 -- ===============
