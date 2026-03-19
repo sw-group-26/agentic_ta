@@ -52,7 +52,8 @@ def build_feedback_packet(
         # ------------------------------------------------------------------
         cur.execute(
             """
-            SELECT a.title, s.code_snapshot_path, s.assignment_id
+            SELECT a.title, s.code_snapshot_path, s.assignment_id,
+                   a.due_at, s.submitted_at
             FROM submission s
             JOIN assignment a ON a.assignment_id = s.assignment_id
             WHERE s.submission_id = %s
@@ -62,7 +63,14 @@ def build_feedback_packet(
         row = cur.fetchone()
         if row is None:
             raise ValueError(f"submission not found: {submission_id}")
-        assignment_title, code_snapshot_path, assignment_id = row
+        assignment_title, code_snapshot_path, assignment_id, due_at, submitted_at = row
+
+        # Determine whether this submission was late.
+        # Source DB columns: assignment.due_at, submission.submitted_at (TIMESTAMPTZ)
+        # is_late = True when submitted_at > due_at (both must be non-null)
+        is_late: bool = False
+        if submitted_at is not None and due_at is not None:
+            is_late = submitted_at > due_at
 
         # ------------------------------------------------------------------
         # 2. Fetch rubric items
@@ -97,9 +105,9 @@ def build_feedback_packet(
         )
         version_row = cur.fetchone()
         if version_row:
-            latest_attempt_no, latest_submitted_at = version_row
+            latest_attempt_no, _ = version_row
         else:
-            latest_attempt_no, latest_submitted_at = 1, None
+            latest_attempt_no = 1
 
         # Load code content from storage; silently set None on any failure
         code_content: str | None = None
@@ -120,7 +128,12 @@ def build_feedback_packet(
 
         latest_submission_artifacts = {
             "attempt_no": latest_attempt_no,
-            "submitted_at": str(latest_submitted_at) if latest_submitted_at else None,
+            # submitted_at: from submission.submitted_at (canonical submission row)
+            "submitted_at": str(submitted_at) if submitted_at else None,
+            # due_at: from assignment.due_at — used by LLM to note late submission
+            "due_at": str(due_at) if due_at else None,
+            # is_late: True when submitted_at > due_at (both non-null)
+            "is_late": is_late,
             "code_snapshot_path": code_snapshot_path,
             "code_content": code_content,
         }
