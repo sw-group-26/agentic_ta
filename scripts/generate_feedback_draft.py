@@ -44,7 +44,7 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(PROJECT_ROOT / ".env")
 
 from app.llm import OllamaUnavailableError, generate_feedback  # noqa: E402
-from app.services import build_feedback_packet  # noqa: E402
+from app.services import build_feedback_packet, save_draft  # noqa: E402
 from app.storage import LocalStorageAdapter  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -180,6 +180,16 @@ def main() -> None:
     print(f"Evidence     : {len(result['evidence'])} item(s)")
     for i, ev in enumerate(result["evidence"], 1):
         print(f"  [{i}] type={ev.get('type')}  pointer={ev.get('pointer')}")
+
+    # --- Save to DB: llm_feedback_draft + llm_evidence ---
+    print("\n[INFO] Saving draft to database ...")
+    try:
+        draft_id = save_draft(submission_id, result, conn)
+        print(f"[SAVED] draft_id: {draft_id}")
+    except Exception as exc:
+        print(f"[ERROR] Failed to save draft: {exc}", file=sys.stderr)
+        conn.close()
+        sys.exit(1)
 
     conn.close()
 
