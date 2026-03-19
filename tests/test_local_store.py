@@ -69,11 +69,11 @@ class TestSaveJson:
         assert Path(stored).exists()
 
     def test_non_ascii_preserved(self, adapter: LocalStorageAdapter):
-        data = {"name": "김철수"}
+        data = {"name": "José García"}
         stored = adapter.save_json(data, "meta.json")
         raw = Path(stored).read_text(encoding="utf-8")
-        # ensure_ascii=False — Korean characters should not be escaped
-        assert "김철수" in raw
+        # ensure_ascii=False — non-ASCII characters should not be escaped
+        assert "José García" in raw
 
 
 class TestLoadText:
