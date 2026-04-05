@@ -12,9 +12,12 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import psycopg2.extensions
+
+logger = logging.getLogger(__name__)
 
 
 def save_draft(
@@ -41,13 +44,15 @@ def save_draft(
         # ------------------------------------------------------------------
         # 1. INSERT llm_feedback_draft
         #    DB columns: draft_id, submission_id, model_name, prompt_version,
-        #                generated_at (DEFAULT now()), draft_text, confidence
+        #                generated_at (DEFAULT now()), draft_text, confidence,
+        #                status
         # ------------------------------------------------------------------
         cur.execute(
             """
             INSERT INTO llm_feedback_draft
-                (submission_id, model_name, prompt_version, draft_text, confidence)
-            VALUES (%s, %s, %s, %s, %s)
+                (submission_id, model_name, prompt_version,
+                 draft_text, confidence, status)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING draft_id
             """,
             (
@@ -56,9 +61,17 @@ def save_draft(
                 result.get("prompt_version"),
                 result["draft_text"],
                 result.get("confidence"),
+                "pending",
             ),
         )
         draft_id: str = str(cur.fetchone()[0])
+
+        logger.info(
+            "save_draft submission_id=%s draft_id=%s model_name=%s",
+            submission_id[:8],
+            draft_id[:8],
+            result["model_name"],
+        )
 
         # ------------------------------------------------------------------
         # 2. INSERT llm_evidence (one row per evidence item)

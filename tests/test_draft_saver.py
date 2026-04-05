@@ -101,6 +101,7 @@ def test_save_draft_inserts_feedback_draft_and_evidence(
     assert params[2] == sample_result["prompt_version"]
     assert params[3] == sample_result["draft_text"]
     assert params[4] == sample_result["confidence"]
+    assert params[5] == "pending"
 
     # Verify llm_evidence INSERT via executemany
     assert cursor.executemany.call_count == 1
