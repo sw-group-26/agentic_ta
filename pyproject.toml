@@ -54,6 +54,9 @@ known-first-party = ["agentic_ta", "make_simul_data"]
 
 [tool.pytest.ini_options]
 testpaths = ["make_simul_data/tests", "tests"]
+markers = [
+    "integration: End-to-end integration tests (may require longer runtime)",
+]
 filterwarnings = [
     # TestCaseSpec is a frozen dataclass (not a pytest test class) whose name
     # starts with "Test", triggering a harmless collection warning.

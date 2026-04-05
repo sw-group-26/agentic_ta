@@ -482,3 +482,83 @@ tests/test_draft_saver.py       ..          2 passed
 | `KeyError: attempt_no` | Old DB schema without the Sprint 2 column | Re-apply `db/schema.sql` or run the ALTER TABLE in section "For DB Teammate" |
 | Duplicate rows on re-run | Should not happen — script is idempotent | If it does, open an issue: `ingest_seed_data.py` uses SELECT-before-INSERT |
 | `json.JSONDecodeError` from LLM | Ollama returned non-JSON or truncated output | Increase `OLLAMA_REQUEST_TIMEOUT_SEC` in `.env` (default: 120s) |
+
+---
+
+## Sprint 3 Additions: Feedback Workflow API
+
+### New Files (Sprint 3)
+
+| File | Description |
+|------|-------------|
+| `app/routers/feedback.py` | 5 REST endpoints for the feedback workflow |
+| `app/services/feedback_service.py` | Business logic: CRUD + state machine |
+| `app/schemas/feedback.py` | Pydantic v2 request/response schemas |
+| `app/deps.py` | FastAPI DI helpers (`get_db`, `get_storage`) |
+| `app/main.py` | Local dev FastAPI app with CORS |
+| `db/migrations/add_draft_status.sql` | Adds status/approval columns to `llm_feedback_draft` |
+| `scripts/demo_e2e.py` | End-to-end demo script (`--mock-llm` for offline demo) |
+| `docs/api_contract_sprint3.md` | Detailed API contract (endpoints, schemas, errors) |
+| `docs/integration_guide_sprint3.md` | Integration guide for teammates |
+
+### API Endpoints (Base: `/api`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/submissions/{id}/feedback-drafts` | List drafts for a submission |
+| GET | `/feedback-drafts/{id}` | Get draft detail with evidence |
+| POST | `/feedback-drafts/{id}/approve` | Approve a pending draft (TA) |
+| POST | `/feedback-drafts/{id}/publish` | Publish an approved draft (Instructor) |
+| POST | `/submissions/{id}/generate-feedback` | Trigger LLM feedback generation |
+
+### Status Lifecycle
+
+```
+pending ──▶ approved ──▶ published (one-way, no reverse transitions)
+```
+
+### Running the API Server
+
+```bash
+uvicorn app.main:app --reload --port 8000
+curl http://localhost:8000/health
+# → {"status": "ok"}
+```
+
+### Running the E2E Demo
+
+```bash
+# Mock LLM (no Ollama required)
+python scripts/demo_e2e.py --mock-llm
+
+# Real Ollama
+python scripts/demo_e2e.py
+```
+
+### Logging
+
+- **Service layer**: Python `logging` module at INFO level (`app.services.feedback_service`)
+- **Demo script**: `logs/demo_e2e_{timestamp}.log` (console + file dual handler)
+- **Integration tests**: `logs/test_integration_{date}.log`
+- **Log format**: `%(asctime)s | %(message)s`
+
+### Full Documentation
+
+See **[docs/integration_guide_sprint3.md](docs/integration_guide_sprint3.md)** for complete
+API reference, curl examples, frontend integration guide, and router registration instructions.
+
+### Updated Test Summary (Sprint 2 + Sprint 3)
+
+| File | Tests | Sprint |
+|------|-------|--------|
+| `test_local_store.py` | 12 | 2 |
+| `test_llm_client.py` | 5 | 2 |
+| `test_ingestion.py` | 3 | 2 |
+| `test_feedback_packet.py` | 2 | 2 |
+| `test_draft_saver.py` | 2 | 2 |
+| `test_feedback_service.py` | 8 | 3 |
+| `test_feedback_router.py` | 7 | 3 |
+| `test_schemas.py` | 3 | 3 |
+| `test_deps.py` | 2 | 3 |
+| `test_e2e_integration.py` | 2 | 3 |
+| **Total** | **46** | |

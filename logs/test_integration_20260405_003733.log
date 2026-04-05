@@ -1,0 +1,32 @@
+2026-04-05 00:37:34,944 | ============================================================
+2026-04-05 00:37:34,944 | TEST: test_full_pipeline_submission_to_published
+2026-04-05 00:37:34,944 | ============================================================
+2026-04-05 00:37:34,944 | Stage 1: trigger_feedback_generation
+2026-04-05 00:37:34,944 |   draft_id=eb5baef4, status=pending
+2026-04-05 00:37:34,944 | Stage 2: list_drafts
+2026-04-05 00:37:34,944 |   found 1 draft(s), status=pending
+2026-04-05 00:37:34,944 | Stage 3: get_draft_detail
+2026-04-05 00:37:34,945 |   draft_text_preview='Overall good work on HW1. Your solution ...', evidence_count=2
+2026-04-05 00:37:34,945 | Stage 4: approve_draft (pending -> approved)
+2026-04-05 00:37:34,945 |   status=approved, approved_by=cfb211e2
+2026-04-05 00:37:34,945 | Stage 5: publish_draft (approved -> published)
+2026-04-05 00:37:34,945 |   status=published, published_at=2026-04-05T12:00:00+00:00
+2026-04-05 00:37:34,945 | RESULT: PASSED — full pipeline submission to published
+2026-04-05 00:37:34,945 | 
+2026-04-05 00:37:34,945 | ============================================================
+2026-04-05 00:37:34,945 | TEST: test_draft_status_transitions_via_service
+2026-04-05 00:37:34,946 | ============================================================
+2026-04-05 00:37:34,946 | Transition: pending -> approved (valid)
+2026-04-05 00:37:34,946 |   OK: pending -> approved
+2026-04-05 00:37:34,946 | Transition: approved -> published (valid)
+2026-04-05 00:37:34,946 |   OK: approved -> published
+2026-04-05 00:37:34,946 | Transition: pending -> published (invalid, expect ValueError)
+2026-04-05 00:37:34,946 |   OK: ValueError raised (cannot publish pending)
+2026-04-05 00:37:34,946 | Transition: approved -> approved (invalid, expect ValueError)
+2026-04-05 00:37:34,946 |   OK: ValueError raised (cannot approve already-approved)
+2026-04-05 00:37:34,946 | Transition: published -> approved (invalid, expect ValueError)
+2026-04-05 00:37:34,946 |   OK: ValueError raised (cannot approve published)
+2026-04-05 00:37:34,946 | Transition: published -> published (invalid, expect ValueError)
+2026-04-05 00:37:34,946 |   OK: ValueError raised (cannot publish already-published)
+2026-04-05 00:37:34,946 | RESULT: PASSED — all 6 transitions verified (2 valid, 4 invalid)
+2026-04-05 00:37:34,946 | 

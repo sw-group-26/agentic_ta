@@ -66,6 +66,68 @@ An AI-powered grading assistant that:
   - Security architecture
   - Deployment architecture
 
+### Sprint 3 — Feedback Service API
+
+- **[docs/integration_guide_sprint3.md](docs/integration_guide_sprint3.md)** - Integration Guide
+  - API reference with curl and JavaScript/TypeScript examples
+  - Router registration guide (for DB/API developer)
+  - Frontend integration guide (for UI developer)
+  - State machine and error handling
+- **[docs/api_contract_sprint3.md](docs/api_contract_sprint3.md)** - API Contract
+  - Endpoint specifications and response schemas
+  - Status lifecycle and error codes
+- **[INGESTION_LLM.md](INGESTION_LLM.md)** - Data Ingestion & LLM Pipeline
+  - Seed data loading, feedback packet assembly, LLM integration
+
+---
+
+## Quick Start (Development)
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL running locally
+- (Optional) Ollama for local LLM inference
+
+### Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env   # Edit with your DATABASE_URL
+```
+
+### Run the API Server
+
+```bash
+uvicorn app.main:app --reload --port 8000
+curl http://localhost:8000/health   # → {"status": "ok"}
+```
+
+### Run the E2E Demo
+
+```bash
+# Load demo seed data (one-time)
+python scripts/ingest_seed_data.py --sample demo_case_01
+
+# Run full demo with mock LLM (no Ollama required)
+python scripts/demo_e2e.py --mock-llm
+
+# View demo logs
+cat logs/demo_e2e_*.log
+```
+
+### Run Tests
+
+```bash
+# All tests (46 total: 44 unit + 2 integration)
+pytest tests/ -v
+
+# Integration tests only
+pytest tests/ -v -m integration
+```
+
 ---
 
 ## UI Mockups
