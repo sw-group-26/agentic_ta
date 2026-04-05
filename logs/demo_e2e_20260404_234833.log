@@ -1,0 +1,50 @@
+2026-04-04 23:48:33 | Log file: /Users/wonbumsohn/Library/CloudStorage/GoogleDrive-sohnwb@gmail.com/Other computers/My_Computer/01_WBS_1/007_Major/05_School/02_Graduate/02_PhD_GSU/04_Class/02_Spring_2026/02_Software_Engineering/03_Project/agentic_ta/logs/demo_e2e_20260404_234833.log
+2026-04-04 23:48:33 | DEMO START
+2026-04-04 23:48:33 |   mode: mock-llm
+2026-04-04 23:48:33 |   timestamp: 20260404_234833
+2026-04-04 23:48:33 |   database: postgresql://localhost/agentic_ta
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | PHASE 0: DB connection + migration check
+2026-04-04 23:48:33 |   DB check: submission table has 2 row(s)
+2026-04-04 23:48:33 |   DB check: llm_feedback_draft.status column exists
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | PHASE 1: Verify seed data (demo_case_01)
+2026-04-04 23:48:33 |   Found: cbca2439... | Allison Hill | Variables, I/O, and Arithmetic | status=submitted
+2026-04-04 23:48:33 |   Found: 707ca4fc... | Cynthia Wilson | Variables, I/O, and Arithmetic | status=submitted
+2026-04-04 23:48:33 |   Verified 2 canonical submission(s) (from 3 seed IDs, 2 canonical)
+2026-04-04 23:48:33 |   Demo TA: ta_id=0a3cbbaf...
+2026-04-04 23:48:33 |   Cleaned up 1 old draft(s) for cbca2439...
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | PHASE 2: Generate LLM feedback drafts
+2026-04-04 23:48:33 | CASE 1: S001/HW1 (normal, on_time)
+2026-04-04 23:48:33 |   packet_build: 0.01s, sections=4
+2026-04-04 23:48:33 |   llm_response: 0.00s, confidence=0.820, text='Overall good work on this assignment. Your code demonstrates a solid understanding of variables and basic I/O operations. Consider adding more descriptive variable names for clarity. Your arithmetic l'
+2026-04-04 23:48:33 |   save_draft: draft_id=b263968a..., status=pending
+2026-04-04 23:48:33 | CASE 1: SUCCESS
+2026-04-04 23:48:33 | CASE 2: S037/HW1 (similarity flag)
+2026-04-04 23:48:33 |   packet_build: 0.00s, sections=4
+2026-04-04 23:48:33 |   llm_response: 0.00s, confidence=0.820, text='Overall good work on this assignment. Your code demonstrates a solid understanding of variables and basic I/O operations. Consider adding more descriptive variable names for clarity. Your arithmetic l'
+2026-04-04 23:48:33 |   save_draft: draft_id=e1693eab..., status=pending
+2026-04-04 23:48:33 | CASE 2: SUCCESS
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | PHASE 3: TA review workflow (list -> detail -> approve -> publish)
+2026-04-04 23:48:33 | REVIEW: S001/HW1 (normal, on_time)
+2026-04-04 23:48:33 |   list_drafts: 1 draft(s) for cbca2439...
+2026-04-04 23:48:33 |   get_draft_detail: draft_id=b263968a..., confidence=0.820, evidence=2
+2026-04-04 23:48:33 |   approve: 0.01s, status=approved, by ta_id=0a3cbbaf...
+2026-04-04 23:48:33 |   publish: 0.00s, status=published
+2026-04-04 23:48:33 | REVIEW: S037/HW1 (similarity flag)
+2026-04-04 23:48:33 |   list_drafts: 1 draft(s) for 707ca4fc...
+2026-04-04 23:48:33 |   get_draft_detail: draft_id=e1693eab..., confidence=0.820, evidence=2
+2026-04-04 23:48:33 |   approve: 0.00s, status=approved, by ta_id=0a3cbbaf...
+2026-04-04 23:48:33 |   publish: 0.00s, status=published
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | FINAL DB STATE
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 |   S001/HW1 (normal, on_time):
+2026-04-04 23:48:33 |     draft=b263968a... status=published confidence=0.820 model=mock-llm approved_at=2026-04-04 23:48:33.441394-04:00 published_at=2026-04-04 23:48:33.452164-04:00
+2026-04-04 23:48:33 |   S037/HW1 (similarity flag):
+2026-04-04 23:48:33 |     draft=e1693eab... status=published confidence=0.820 model=mock-llm approved_at=2026-04-04 23:48:33.452606-04:00 published_at=2026-04-04 23:48:33.453395-04:00
+2026-04-04 23:48:33 | ============================================================
+2026-04-04 23:48:33 | DEMO COMPLETE: 2/2 cases passed in 0.2s
+2026-04-04 23:48:33 | ============================================================
