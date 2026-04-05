@@ -14,6 +14,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.feedback import router as feedback_router
+
 app = FastAPI(
     title="Agentic TA (Local Dev)",
     version="0.1.0",
@@ -46,8 +48,6 @@ def health_check() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Router registration (activate after Step 4 creates feedback_router)
+# Router registration
 # ---------------------------------------------------------------------------
-# TODO: Uncomment after Step 4 completion
-# from app.routers.feedback import router as feedback_router
-# app.include_router(feedback_router, prefix="/api")
+app.include_router(feedback_router, prefix="/api")
