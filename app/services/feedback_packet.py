@@ -20,10 +20,32 @@ import psycopg2.extensions
 from app.storage import LocalStorageAdapter
 
 
+def _column_exists(
+    cur: psycopg2.extensions.cursor,
+    table_name: str,
+    column_name: str,
+) -> bool:
+    """Return True if a given column exists in current schema."""
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = %s
+              AND column_name = %s
+        )
+        """,
+        (table_name, column_name),
+    )
+    return bool(cur.fetchone()[0])
+
+
 def build_feedback_packet(
     submission_id: str,
     conn: psycopg2.extensions.connection,
     storage: LocalStorageAdapter,
+    version_id: str | None = None,
 ) -> dict[str, Any]:
     """Assemble all grading-related data for a submission into one dict.
 
@@ -31,6 +53,7 @@ def build_feedback_packet(
         submission_id: UUID string of the target submission.
         conn: Active psycopg2 connection (caller manages the transaction).
         storage: LocalStorageAdapter instance used to read artifact files.
+        version_id: Optional explicit version context.
 
     Returns:
         Dict containing:
@@ -44,7 +67,7 @@ def build_feedback_packet(
         - student_history_summary (dict)  — total_attempts, attempt_scores
 
     Raises:
-        ValueError: When submission_id does not exist in the DB.
+        ValueError: When submission_id/version_id does not exist in the DB.
     """
     with conn.cursor() as cur:
         # ------------------------------------------------------------------
@@ -63,11 +86,15 @@ def build_feedback_packet(
         row = cur.fetchone()
         if row is None:
             raise ValueError(f"submission not found: {submission_id}")
-        assignment_title, code_snapshot_path, assignment_id, due_at, submitted_at = row
+        (
+            assignment_title,
+            legacy_code_snapshot_path,
+            assignment_id,
+            due_at,
+            submitted_at,
+        ) = row
 
         # Determine whether this submission was late.
-        # Source DB columns: assignment.due_at, submission.submitted_at (TIMESTAMPTZ)
-        # is_late = True when submitted_at > due_at (both must be non-null)
         is_late: bool = False
         if submitted_at is not None and due_at is not None:
             is_late = submitted_at > due_at
@@ -91,34 +118,68 @@ def build_feedback_packet(
         ]
 
         # ------------------------------------------------------------------
-        # 3. Latest attempt from submission_version
+        # 3. Resolve target version context
         # ------------------------------------------------------------------
-        cur.execute(
-            """
-            SELECT attempt_no, created_at
-            FROM submission_version
-            WHERE submission_id = %s
-            ORDER BY attempt_no DESC
-            LIMIT 1
-            """,
-            (submission_id,),
+        has_sv_code_snapshot = _column_exists(cur, "submission_version", "code_snapshot_path")
+        sv_snapshot_expr = (
+            "sv.code_snapshot_path"
+            if has_sv_code_snapshot
+            else "NULL::text AS code_snapshot_path"
         )
-        version_row = cur.fetchone()
-        if version_row:
-            latest_attempt_no, _ = version_row
+
+        if version_id is None:
+            cur.execute(
+                f"""
+                SELECT sv.version_id, sv.attempt_no, sv.created_at,
+                       sv.commit_hash, {sv_snapshot_expr}
+                FROM submission_version sv
+                WHERE sv.submission_id = %s
+                ORDER BY sv.attempt_no DESC, sv.created_at DESC
+                LIMIT 1
+                """,
+                (submission_id,),
+            )
         else:
-            latest_attempt_no = 1
+            cur.execute(
+                f"""
+                SELECT sv.version_id, sv.attempt_no, sv.created_at,
+                       sv.commit_hash, {sv_snapshot_expr}
+                FROM submission_version sv
+                WHERE sv.submission_id = %s
+                  AND sv.version_id = %s
+                LIMIT 1
+                """,
+                (submission_id, version_id),
+            )
+
+        version_row = cur.fetchone()
+        if version_row is None and version_id is not None:
+            raise ValueError(f"version not found for submission: {version_id}")
+
+        target_version_id: str | None = None
+        latest_attempt_no = 1
+        version_commit_hash: str | None = None
+        version_code_snapshot_path: str | None = None
+        if version_row is not None:
+            target_version_id = str(version_row[0])
+            latest_attempt_no = int(version_row[1])
+            version_commit_hash = version_row[3]
+            version_code_snapshot_path = version_row[4]
+
+        effective_code_snapshot_path = (
+            version_code_snapshot_path or legacy_code_snapshot_path
+        )
 
         # Load code content from storage; silently set None on any failure
         code_content: str | None = None
-        if code_snapshot_path:
+        if effective_code_snapshot_path:
             try:
-                abs_path = Path(code_snapshot_path)
+                abs_path = Path(effective_code_snapshot_path)
                 if abs_path.exists():
                     code_content = abs_path.read_text(encoding="utf-8")
                 else:
                     # Try treating code_snapshot_path as an object key
-                    relative_key = code_snapshot_path.replace(
+                    relative_key = effective_code_snapshot_path.replace(
                         str(storage.root) + "/", "", 1
                     )
                     if storage.exists(relative_key):
@@ -127,29 +188,41 @@ def build_feedback_packet(
                 code_content = None
 
         latest_submission_artifacts = {
+            "version_id": target_version_id,
             "attempt_no": latest_attempt_no,
-            # submitted_at: from submission.submitted_at (canonical submission row)
             "submitted_at": str(submitted_at) if submitted_at else None,
-            # due_at: from assignment.due_at — used by LLM to note late submission
             "due_at": str(due_at) if due_at else None,
-            # is_late: True when submitted_at > due_at (both non-null)
             "is_late": is_late,
-            "code_snapshot_path": code_snapshot_path,
+            "commit_hash": version_commit_hash,
+            "code_snapshot_path": effective_code_snapshot_path,
             "code_content": code_content,
         }
 
         # ------------------------------------------------------------------
         # 4. test_run summary (latest first, then full history)
         # ------------------------------------------------------------------
-        cur.execute(
-            """
-            SELECT score, results_json_path, run_at
-            FROM test_run
-            WHERE submission_id = %s
-            ORDER BY run_at DESC
-            """,
-            (submission_id,),
-        )
+        has_test_run_version = _column_exists(cur, "test_run", "version_id")
+        if has_test_run_version and target_version_id is not None:
+            cur.execute(
+                """
+                SELECT score, results_json_path, run_at
+                FROM test_run
+                WHERE submission_id = %s
+                  AND version_id = %s
+                ORDER BY run_at DESC
+                """,
+                (submission_id, target_version_id),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT score, results_json_path, run_at
+                FROM test_run
+                WHERE submission_id = %s
+                ORDER BY run_at DESC
+                """,
+                (submission_id,),
+            )
         test_run_rows = cur.fetchall()
 
         total_runs = len(test_run_rows)

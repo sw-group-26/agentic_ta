@@ -151,23 +151,47 @@ def _seed_packet_data(cur, storage: LocalStorageAdapter) -> str:
     )
 
     # submission_version
+    version_id = str(uuid.uuid4())
     cur.execute(
         """
         INSERT INTO submission_version (version_id, submission_id, attempt_no)
         VALUES (%s, %s, 1)
         """,
-        (str(uuid.uuid4()), submission_id),
+        (version_id, submission_id),
     )
 
-    # test_run
+    # test_run (schema-compatible insert: with or without version_id)
     cur.execute(
         """
-        INSERT INTO test_run
-            (test_run_id, submission_id, score, results_json_path)
-        VALUES (%s, %s, %s, %s)
-        """,
-        (str(uuid.uuid4()), submission_id, 75.0, results_path),
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'test_run'
+              AND column_name = 'version_id'
+        )
+        """
     )
+    has_test_run_version = bool(cur.fetchone()[0])
+
+    if has_test_run_version:
+        cur.execute(
+            """
+            INSERT INTO test_run
+                (test_run_id, submission_id, version_id, score, results_json_path)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (str(uuid.uuid4()), submission_id, version_id, 75.0, results_path),
+        )
+    else:
+        cur.execute(
+            """
+            INSERT INTO test_run
+                (test_run_id, submission_id, score, results_json_path)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (str(uuid.uuid4()), submission_id, 75.0, results_path),
+        )
 
     return submission_id
 

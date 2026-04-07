@@ -182,15 +182,23 @@ def publish_feedback_draft(
 )
 def generate_feedback_for_submission(
     submission_id: UUID,
+    version_id: UUID | None = None,
     conn=Depends(get_db),
     storage=Depends(get_storage),
 ) -> GenerateFeedbackOut:
     """Trigger LLM feedback generation for a submission."""
-    logger.info("generate_feedback submission_id=%s", submission_id)
+    logger.info(
+        "generate_feedback submission_id=%s version_id=%s",
+        submission_id,
+        version_id,
+    )
 
     try:
         draft_id = feedback_service.trigger_feedback_generation(
-            str(submission_id), conn, storage
+            str(submission_id),
+            conn,
+            storage,
+            version_id=(str(version_id) if version_id is not None else None),
         )
     except ValueError as exc:
         raise _handle_value_error(exc) from exc
@@ -201,4 +209,5 @@ def generate_feedback_for_submission(
     return GenerateFeedbackOut(
         draft_id=draft_id,
         submission_id=submission_id,
+        version_id=version_id,
     )

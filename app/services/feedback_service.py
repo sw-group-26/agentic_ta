@@ -62,6 +62,50 @@ def _rows_to_list(
     return [{col: _serialize(val) for col, val in zip(columns, row)} for row in rows]
 
 
+def _resolve_target_version_id(
+    submission_id: str,
+    conn: psycopg2.extensions.connection,
+    requested_version_id: str | None,
+) -> str:
+    """Resolve and validate the version to use for generation.
+
+    If requested_version_id is provided, it must belong to submission_id.
+    Otherwise, latest attempt version is returned.
+    """
+    with conn.cursor() as cur:
+        if requested_version_id is not None:
+            cur.execute(
+                """
+                SELECT version_id
+                FROM submission_version
+                WHERE version_id = %s
+                  AND submission_id = %s
+                """,
+                (requested_version_id, submission_id),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError(
+                    f"version not found for submission: {requested_version_id}"
+                )
+            return str(row[0])
+
+        cur.execute(
+            """
+            SELECT version_id
+            FROM submission_version
+            WHERE submission_id = %s
+            ORDER BY attempt_no DESC, created_at DESC
+            LIMIT 1
+            """,
+            (submission_id,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError(f"submission version not found: {submission_id}")
+        return str(row[0])
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -263,6 +307,7 @@ def trigger_feedback_generation(
     submission_id: str,
     conn: psycopg2.extensions.connection,
     storage: LocalStorageAdapter,
+    version_id: str | None = None,
 ) -> str:
     """Orchestrate the full feedback generation pipeline.
 
@@ -275,18 +320,26 @@ def trigger_feedback_generation(
         submission_id: UUID string of the target submission.
         conn: Active psycopg2 connection.
         storage: LocalStorageAdapter for reading artifact files.
+        version_id: Optional explicit target version_id.
 
     Returns:
         draft_id (str): UUID of the newly created draft.
 
     Raises:
-        ValueError: If submission_id not found (from build_feedback_packet).
+        ValueError: If submission/version not found.
         OllamaUnavailableError: If Ollama server is unreachable.
     """
     start = time.time()
     try:
+        target_version_id = _resolve_target_version_id(submission_id, conn, version_id)
+
         # Step 1: Assemble grading context
-        packet = build_feedback_packet(submission_id, conn, storage)
+        packet = build_feedback_packet(
+            submission_id,
+            conn,
+            storage,
+            version_id=target_version_id,
+        )
 
         # Step 2: Call LLM
         llm_start = time.time()
@@ -294,13 +347,19 @@ def trigger_feedback_generation(
         llm_elapsed = time.time() - llm_start
 
         # Step 3: Persist draft (save_draft commits internally)
-        draft_id = save_draft(submission_id, result, conn)
+        draft_id = save_draft(
+            submission_id,
+            result,
+            conn,
+            version_id=target_version_id,
+        )
 
         total_elapsed = time.time() - start
         logger.info(
-            "trigger_generation submission_id=%s draft_id=%s "
+            "trigger_generation submission_id=%s version_id=%s draft_id=%s "
             "llm_time=%.1fs confidence=%.2f total_time=%.1fs",
             submission_id[:8],
+            target_version_id[:8],
             draft_id[:8],
             llm_elapsed,
             result.get("confidence", 0),

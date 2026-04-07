@@ -24,7 +24,7 @@ from app.services.draft_saver import save_draft
 # ---------------------------------------------------------------------------
 
 SAMPLE_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
-
+SAMPLE_VERSION_ID = str(uuid.uuid4())
 SAMPLE_DRAFT_ID = str(uuid.uuid4())
 
 
@@ -61,7 +61,7 @@ def mock_conn() -> MagicMock:
     cursor.__enter__ = MagicMock(return_value=cursor)
     cursor.__exit__ = MagicMock(return_value=False)
 
-    # fetchone() returns draft_id UUID as first call
+    # fetchone() returns draft_id UUID
     cursor.fetchone.return_value = (uuid.UUID(SAMPLE_DRAFT_ID),)
 
     conn.cursor.return_value = cursor
@@ -85,7 +85,12 @@ def test_save_draft_inserts_feedback_draft_and_evidence(
     - INSERT parameters match the result dict
     - returned draft_id matches the mocked DB response
     """
-    draft_id = save_draft(SAMPLE_SUBMISSION_ID, sample_result, mock_conn)
+    draft_id = save_draft(
+        SAMPLE_SUBMISSION_ID,
+        sample_result,
+        mock_conn,
+        version_id=SAMPLE_VERSION_ID,
+    )
 
     cursor = mock_conn.cursor.return_value.__enter__.return_value
 
@@ -97,11 +102,12 @@ def test_save_draft_inserts_feedback_draft_and_evidence(
     # Verify INSERT parameters
     params = execute_args[1]
     assert params[0] == SAMPLE_SUBMISSION_ID
-    assert params[1] == sample_result["model_name"]
-    assert params[2] == sample_result["prompt_version"]
-    assert params[3] == sample_result["draft_text"]
-    assert params[4] == sample_result["confidence"]
-    assert params[5] == "pending"
+    assert params[1] == SAMPLE_VERSION_ID
+    assert params[2] == sample_result["model_name"]
+    assert params[3] == sample_result["prompt_version"]
+    assert params[4] == sample_result["draft_text"]
+    assert params[5] == sample_result["confidence"]
+    assert params[6] == "pending"
 
     # Verify llm_evidence INSERT via executemany
     assert cursor.executemany.call_count == 1
@@ -136,7 +142,12 @@ def test_save_draft_with_empty_evidence_does_not_raise(
     """
     sample_result["evidence"] = []
 
-    draft_id = save_draft(SAMPLE_SUBMISSION_ID, sample_result, mock_conn)
+    draft_id = save_draft(
+        SAMPLE_SUBMISSION_ID,
+        sample_result,
+        mock_conn,
+        version_id=SAMPLE_VERSION_ID,
+    )
 
     cursor = mock_conn.cursor.return_value.__enter__.return_value
 

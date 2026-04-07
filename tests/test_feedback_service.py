@@ -37,12 +37,14 @@ from app.services.feedback_service import (
 SAMPLE_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
 SAMPLE_DRAFT_ID = str(uuid.uuid4())
 SAMPLE_TA_ID = str(uuid.uuid4())
+SAMPLE_VERSION_ID = str(uuid.uuid4())
 NOW = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 # Column descriptions matching SELECT queries (cursor.description format)
 DRAFT_COLUMNS = [
     ("draft_id",),
     ("submission_id",),
+    ("version_id",),
     ("model_name",),
     ("prompt_version",),
     ("generated_at",),
@@ -65,6 +67,7 @@ EVIDENCE_COLUMNS = [
 SAMPLE_DRAFT_ROW = (
     uuid.UUID(SAMPLE_DRAFT_ID),
     uuid.UUID(SAMPLE_SUBMISSION_ID),
+    uuid.UUID(SAMPLE_VERSION_ID),
     "llama3.2",
     "v1.0",
     NOW,
@@ -204,9 +207,9 @@ def test_approve_draft_transitions_pending_to_approved(
 
     # Build approved row (status changed, approved_by/at set)
     approved_row = list(SAMPLE_DRAFT_ROW)
-    approved_row[7] = "approved"  # status
-    approved_row[8] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
-    approved_row[9] = NOW  # approved_at
+    approved_row[8] = "approved"  # status
+    approved_row[9] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
+    approved_row[10] = NOW  # approved_at
     approved_row = tuple(approved_row)
 
     # First fetchone: SELECT FOR UPDATE -> current status
@@ -263,10 +266,10 @@ def test_publish_draft_transitions_approved_to_published(
 
     # Build published row
     published_row = list(SAMPLE_DRAFT_ROW)
-    published_row[7] = "published"  # status
-    published_row[8] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
-    published_row[9] = NOW  # approved_at
-    published_row[10] = NOW  # published_at
+    published_row[8] = "published"  # status
+    published_row[9] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
+    published_row[10] = NOW  # approved_at
+    published_row[11] = NOW  # published_at
     published_row = tuple(published_row)
 
     descriptions = [
@@ -335,14 +338,25 @@ def test_trigger_feedback_generation_calls_pipeline(
     mock_save.return_value = SAMPLE_DRAFT_ID
 
     draft_id = trigger_feedback_generation(
-        SAMPLE_SUBMISSION_ID, mock_conn, mock_storage
+        SAMPLE_SUBMISSION_ID,
+        mock_conn,
+        mock_storage,
+        version_id=SAMPLE_VERSION_ID,
     )
 
     # Pipeline functions called in correct order with correct args
-    mock_build.assert_called_once_with(SAMPLE_SUBMISSION_ID, mock_conn, mock_storage)
+    mock_build.assert_called_once_with(
+        SAMPLE_SUBMISSION_ID,
+        mock_conn,
+        mock_storage,
+        version_id=SAMPLE_VERSION_ID,
+    )
     mock_generate.assert_called_once_with(mock_build.return_value)
     mock_save.assert_called_once_with(
-        SAMPLE_SUBMISSION_ID, mock_generate.return_value, mock_conn
+        SAMPLE_SUBMISSION_ID,
+        mock_generate.return_value,
+        mock_conn,
+        version_id=SAMPLE_VERSION_ID,
     )
 
     # Returns draft_id from save_draft

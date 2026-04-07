@@ -54,6 +54,7 @@ class DraftSummaryOut(BaseModel):
     )
     confidence: float | None = None
     status: str  # "pending" | "approved" | "published"
+    version_id: UUID | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +71,7 @@ class DraftDetailOut(BaseModel):
 
     draft_id: UUID
     submission_id: UUID
+    version_id: UUID | None = None
     model_name: str
     prompt_version: str | None = None
     generated_at: datetime
@@ -148,5 +150,6 @@ class GenerateFeedbackOut(BaseModel):
 
     draft_id: UUID
     submission_id: UUID
+    version_id: UUID | None = None
     status: Literal["pending"] = "pending"
     message: str = "Feedback draft generated successfully"
