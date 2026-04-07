@@ -190,7 +190,7 @@ def _build_prompt(packet: dict[str, Any]) -> str:
     # -----------------------------------------------------------------------
     # Section 4: Student's latest submitted code
     # Source DB table : submission_version.attempt_no, submission_version.created_at
-    #                   submission_version.code_snapshot_path (stored in submission)
+    #                   submission_version.code_snapshot_path (version-level when available; legacy fallback from submission)
     #                   → file content read by LocalStorageAdapter
     # Packet key      : packet["latest_submission_artifacts"]  (dict)
     # Keys            : attempt_no (int), submitted_at (str|None),
