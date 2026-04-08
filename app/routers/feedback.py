@@ -188,6 +188,11 @@ def generate_feedback_for_submission(
     storage=Depends(get_storage),
 ) -> GenerateFeedbackOut:
     """Trigger LLM feedback generation for a submission."""
+    logger.info("generate_feedback submission_id=%s", submission_id)
+
+    try:
+        draft_id = feedback_service.trigger_feedback_generation(
+            str(submission_id), conn, storage
     logger.info(
         "generate_feedback submission_id=%s version_id=%s",
         submission_id,

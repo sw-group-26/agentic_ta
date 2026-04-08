@@ -46,6 +46,26 @@ def save_draft(
     with conn.cursor() as cur:
         # ------------------------------------------------------------------
         # 1. INSERT llm_feedback_draft
+        #    DB columns: draft_id, submission_id, model_name, prompt_version,
+        #                generated_at (DEFAULT now()), draft_text, confidence,
+        #                status
+        # ------------------------------------------------------------------
+        cur.execute(
+            """
+            INSERT INTO llm_feedback_draft
+                (submission_id, model_name, prompt_version,
+                 draft_text, confidence, status)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING draft_id
+            """,
+            (
+                submission_id,
+                result["model_name"],
+                result.get("prompt_version"),
+                result["draft_text"],
+                result.get("confidence"),
+                "pending",
+            ),
         #    Supports both schemas:
         #    - legacy schema: no version_id column
         #    - version-aware schema: include version_id explicitly
@@ -94,6 +114,13 @@ def save_draft(
             "save_draft submission_id=%s version_id=%s draft_id=%s model_name=%s",
             submission_id[:8],
             (version_id or "legacy"),
+            draft_id[:8],
+            result["model_name"],
+        )
+
+        logger.info(
+            "save_draft submission_id=%s draft_id=%s model_name=%s",
+            submission_id[:8],
             draft_id[:8],
             result["model_name"],
         )

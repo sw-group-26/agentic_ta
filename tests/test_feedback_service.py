@@ -207,6 +207,9 @@ def test_approve_draft_transitions_pending_to_approved(
 
     # Build approved row (status changed, approved_by/at set)
     approved_row = list(SAMPLE_DRAFT_ROW)
+    approved_row[7] = "approved"  # status
+    approved_row[8] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
+    approved_row[9] = NOW  # approved_at
     approved_row[8] = "approved"  # status
     approved_row[9] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
     approved_row[10] = NOW  # approved_at
@@ -266,6 +269,10 @@ def test_publish_draft_transitions_approved_to_published(
 
     # Build published row
     published_row = list(SAMPLE_DRAFT_ROW)
+    published_row[7] = "published"  # status
+    published_row[8] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
+    published_row[9] = NOW  # approved_at
+    published_row[10] = NOW  # published_at
     published_row[8] = "published"  # status
     published_row[9] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
     published_row[10] = NOW  # approved_at
@@ -338,6 +345,19 @@ def test_trigger_feedback_generation_calls_pipeline(
         "evidence": [],
     }
     mock_save.return_value = SAMPLE_DRAFT_ID
+
+    draft_id = trigger_feedback_generation(
+        SAMPLE_SUBMISSION_ID, mock_conn, mock_storage
+    )
+
+    # Pipeline functions called in correct order with correct args
+    mock_build.assert_called_once_with(SAMPLE_SUBMISSION_ID, mock_conn, mock_storage)
+    mock_generate.assert_called_once_with(mock_build.return_value)
+    mock_save.assert_called_once_with(
+        SAMPLE_SUBMISSION_ID, mock_generate.return_value, mock_conn
+    )
+
+    # Returns draft_id from save_draft
     mock_resolve.return_value = SAMPLE_VERSION_ID
 
     draft_id = trigger_feedback_generation(

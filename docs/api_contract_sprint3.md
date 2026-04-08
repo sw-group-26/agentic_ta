@@ -72,6 +72,12 @@ Returns all feedback drafts for a given submission.
 |---|---|---|
 | `submission_id` | UUID | Target submission ID |
 
+#### Query Parameters (optional)
+
+| Name | Type | Description |
+|---|---|---|
+| `status` | string | Filter by status (`pending`, `approved`, `published`) |
+
 #### Response `200 OK`
 
 ```json
@@ -298,6 +304,7 @@ None (empty body or `{}`)
 
 ### 4.5 Generate Feedback (Trigger LLM)
 
+**`POST /api/submissions/{submission_id}/generate-feedback`**
 **`POST /api/submissions/{submission_id}/generate-feedback?version_id={optional}`**
 
 Triggers LLM feedback generation for a submission:

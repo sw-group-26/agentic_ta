@@ -111,6 +111,7 @@ def _resolve_target_version_id(
 # ---------------------------------------------------------------------------
 
 _DRAFT_COLS = (
+    "draft_id, submission_id, model_name, prompt_version, "
     "draft_id, submission_id, version_id, model_name, prompt_version, "
     "generated_at, draft_text, confidence, status, "
     "approved_by, approved_at, published_at"
@@ -130,6 +131,7 @@ def list_drafts(
     Returns:
         List of dicts with draft columns (draft_id, submission_id,
         model_name, prompt_version, generated_at, draft_text,
+        confidence, status, approved_by, approved_at, published_at).
         version_id, confidence, status, approved_by, approved_at, published_at).
     """
     with conn.cursor() as cur:
@@ -326,11 +328,14 @@ def trigger_feedback_generation(
         draft_id (str): UUID of the newly created draft.
 
     Raises:
+        ValueError: If submission_id not found (from build_feedback_packet).
         ValueError: If submission/version not found.
         OllamaUnavailableError: If Ollama server is unreachable.
     """
     start = time.time()
     try:
+        # Step 1: Assemble grading context
+        packet = build_feedback_packet(submission_id, conn, storage)
         target_version_id = _resolve_target_version_id(submission_id, conn, version_id)
 
         # Step 1: Assemble grading context
@@ -347,6 +352,13 @@ def trigger_feedback_generation(
         llm_elapsed = time.time() - llm_start
 
         # Step 3: Persist draft (save_draft commits internally)
+        draft_id = save_draft(submission_id, result, conn)
+
+        total_elapsed = time.time() - start
+        logger.info(
+            "trigger_generation submission_id=%s draft_id=%s "
+            "llm_time=%.1fs confidence=%.2f total_time=%.1fs",
+            submission_id[:8],
         draft_id = save_draft(
             submission_id,
             result,

@@ -102,6 +102,11 @@ def test_save_draft_inserts_feedback_draft_and_evidence(
     # Verify INSERT parameters
     params = execute_args[1]
     assert params[0] == SAMPLE_SUBMISSION_ID
+    assert params[1] == sample_result["model_name"]
+    assert params[2] == sample_result["prompt_version"]
+    assert params[3] == sample_result["draft_text"]
+    assert params[4] == sample_result["confidence"]
+    assert params[5] == "pending"
     assert params[1] == SAMPLE_VERSION_ID
     assert params[2] == sample_result["model_name"]
     assert params[3] == sample_result["prompt_version"]
