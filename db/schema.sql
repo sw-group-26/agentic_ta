@@ -105,16 +105,13 @@ CREATE TABLE IF NOT EXISTS submission (
   assignment_id   UUID NOT NULL REFERENCES assignment(assignment_id) ON DELETE CASCADE,
   student_id      UUID NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
   submitted_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  repo_url        TEXT,        -- optional
-  commit_hash     TEXT,        -- optional
-  code_snapshot_path TEXT,     -- where snapshot stored (S3/local path)
+  repo_url        TEXT,        -- compatibility/latest cache; version-level source lives on submission_version
+  commit_hash     TEXT,        -- compatibility/latest cache; version-level commit lives on submission_version
+  code_snapshot_path TEXT,     -- compatibility/latest cache; version-level snapshot lives on submission_version
   status          TEXT NOT NULL DEFAULT 'submitted', -- submitted|graded|flagged
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(assignment_id, student_id)  -- common in courses; remove if multiple attempts allowed
+  UNIQUE(assignment_id, student_id)  -- one logical submission per student-assignment pair
 );
-
--- If you want multiple attempts per student, remove UNIQUE above and instead:
--- create a unique on (assignment_id, student_id, submitted_at)
 
 CREATE TABLE IF NOT EXISTS submission_version (
   version_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -123,6 +120,10 @@ CREATE TABLE IF NOT EXISTS submission_version (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   commit_hash     TEXT,
   diff_summary    TEXT,
+  code_snapshot_path TEXT,
+  repo_url        TEXT,
+  source_type     TEXT,                  -- e.g. "upload", "git", "lms", "legacy"
+  notes           TEXT,
   UNIQUE(submission_id, attempt_no)            -- one version row per attempt
 );
 
@@ -132,6 +133,7 @@ CREATE TABLE IF NOT EXISTS submission_version (
 CREATE TABLE IF NOT EXISTS test_run (
   test_run_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   submission_id   UUID NOT NULL REFERENCES submission(submission_id) ON DELETE CASCADE,
+  version_id      UUID NOT NULL REFERENCES submission_version(version_id) ON DELETE CASCADE,
   run_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   score           NUMERIC(6,2),
   runtime_ms      INT,
@@ -146,11 +148,12 @@ CREATE TABLE IF NOT EXISTS test_run (
 CREATE TABLE IF NOT EXISTS grading_record (
   grading_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   submission_id   UUID NOT NULL REFERENCES submission(submission_id) ON DELETE CASCADE,
+  version_id      UUID NOT NULL REFERENCES submission_version(version_id) ON DELETE CASCADE,
   ta_id           UUID REFERENCES ta(ta_id) ON DELETE SET NULL,
   total_score     NUMERIC(6,2),
   final_feedback  TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(submission_id) -- one final grade per submission (MVP)
+  UNIQUE(version_id) -- one final grade per version
 );
 
 CREATE TABLE IF NOT EXISTS rubric_score (
@@ -167,11 +170,17 @@ CREATE TABLE IF NOT EXISTS rubric_score (
 CREATE TABLE IF NOT EXISTS llm_feedback_draft (
   draft_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   submission_id   UUID NOT NULL REFERENCES submission(submission_id) ON DELETE CASCADE,
+  version_id      UUID NOT NULL REFERENCES submission_version(version_id) ON DELETE CASCADE,
   model_name      TEXT NOT NULL,           -- e.g., "qwen2.5-coder-7b"
   prompt_version  TEXT,                    -- e.g., "v1.0"
   generated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   draft_text      TEXT NOT NULL,
-  confidence      NUMERIC(4,3)             -- optional heuristic
+  confidence      NUMERIC(4,3),            -- optional heuristic
+  status          TEXT NOT NULL DEFAULT 'pending',
+  approved_by     UUID REFERENCES ta(ta_id),
+  approved_at     TIMESTAMPTZ,
+  published_at    TIMESTAMPTZ,
+  CONSTRAINT chk_draft_status CHECK (status IN ('pending', 'approved', 'published'))
 );
 
 -- Evidence pointers (keeps LLM "grounded" and explainable)
@@ -236,7 +245,10 @@ CREATE INDEX IF NOT EXISTS ix_assignment_offering ON assignment(offering_id);
 CREATE INDEX IF NOT EXISTS ix_submission_assignment ON submission(assignment_id);
 CREATE INDEX IF NOT EXISTS ix_submission_student ON submission(student_id);
 CREATE INDEX IF NOT EXISTS ix_test_run_submission ON test_run(submission_id);
+CREATE INDEX IF NOT EXISTS ix_test_run_version ON test_run(version_id);
 CREATE INDEX IF NOT EXISTS ix_llm_draft_submission ON llm_feedback_draft(submission_id);
+CREATE INDEX IF NOT EXISTS ix_llm_draft_version ON llm_feedback_draft(version_id);
+CREATE INDEX IF NOT EXISTS ix_llm_draft_submission_status ON llm_feedback_draft(submission_id, status);
 CREATE INDEX IF NOT EXISTS ix_flag_student ON student_flag(student_id);
 
 COMMIT;

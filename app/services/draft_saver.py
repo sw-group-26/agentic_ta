@@ -24,6 +24,7 @@ def save_draft(
     submission_id: str,
     result: dict[str, Any],
     conn: psycopg2.extensions.connection,
+    version_id: str | None = None,
 ) -> str:
     """Persist an LLM feedback result to the database.
 
@@ -32,6 +33,8 @@ def save_draft(
         result: Dict returned by generate_feedback() — must contain
                 draft_text, confidence, model_name, prompt_version, evidence.
         conn: Active psycopg2 connection (caller manages commit/rollback).
+        version_id: Optional version UUID. If provided, draft is bound to that
+                    submission version in version-aware schema.
 
     Returns:
         draft_id (str): UUID of the newly inserted llm_feedback_draft row.
@@ -63,8 +66,57 @@ def save_draft(
                 result.get("confidence"),
                 "pending",
             ),
+        #    Supports both schemas:
+        #    - legacy schema: no version_id column
+        #    - version-aware schema: include version_id explicitly
+        # ------------------------------------------------------------------
+        if version_id is None:
+            cur.execute(
+                """
+                INSERT INTO llm_feedback_draft
+                    (submission_id, model_name, prompt_version,
+                     draft_text, confidence, status)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING draft_id
+                """,
+                (
+                    submission_id,
+                    result["model_name"],
+                    result.get("prompt_version"),
+                    result["draft_text"],
+                    result.get("confidence"),
+                    "pending",
+                ),
+            )
+            draft_id: str = str(cur.fetchone()[0])
+        else:
+            cur.execute(
+                """
+                INSERT INTO llm_feedback_draft
+                    (submission_id, version_id, model_name, prompt_version,
+                     draft_text, confidence, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING draft_id
+                """,
+                (
+                    submission_id,
+                    version_id,
+                    result["model_name"],
+                    result.get("prompt_version"),
+                    result["draft_text"],
+                    result.get("confidence"),
+                    "pending",
+                ),
+            )
+            draft_id = str(cur.fetchone()[0])
+
+        logger.info(
+            "save_draft submission_id=%s version_id=%s draft_id=%s model_name=%s",
+            submission_id[:8],
+            (version_id or "legacy"),
+            draft_id[:8],
+            result["model_name"],
         )
-        draft_id: str = str(cur.fetchone()[0])
 
         logger.info(
             "save_draft submission_id=%s draft_id=%s model_name=%s",

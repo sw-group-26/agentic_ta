@@ -86,6 +86,7 @@ Returns all feedback drafts for a given submission.
   "drafts": [
     {
       "draft_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "version_id": "7a2a6d6f-1f2e-4e24-9d88-1e1111111111",
       "model_name": "llama3.2",
       "prompt_version": "v1.0",
       "generated_at": "2026-03-25T14:30:00Z",
@@ -129,6 +130,7 @@ Returns full draft text with evidence list.
 {
   "draft_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "submission_id": "cbca2439-5fa7-4a69-b4d5-57515f2ca8df",
+  "version_id": "7a2a6d6f-1f2e-4e24-9d88-1e1111111111",
   "model_name": "llama3.2",
   "prompt_version": "v1.0",
   "generated_at": "2026-03-25T14:30:00Z",
@@ -303,6 +305,7 @@ None (empty body or `{}`)
 ### 4.5 Generate Feedback (Trigger LLM)
 
 **`POST /api/submissions/{submission_id}/generate-feedback`**
+**`POST /api/submissions/{submission_id}/generate-feedback?version_id={optional}`**
 
 Triggers LLM feedback generation for a submission:
 1. Reads submission data from DB
@@ -316,6 +319,12 @@ Triggers LLM feedback generation for a submission:
 |---|---|---|
 | `submission_id` | UUID | Target submission ID |
 
+#### Query Parameters (optional)
+
+| Name | Type | Description |
+|---|---|---|
+| `version_id` | UUID | Target submission version. If omitted, the latest version is used. |
+
 #### Request Body
 
 None (empty body or `{}`)
@@ -326,6 +335,7 @@ None (empty body or `{}`)
 {
   "draft_id": "newly-generated-uuid-1234-5678-abcdef",
   "submission_id": "cbca2439-5fa7-4a69-b4d5-57515f2ca8df",
+  "version_id": "7a2a6d6f-1f2e-4e24-9d88-1e1111111111",
   "status": "pending",
   "message": "Feedback draft generated successfully"
 }

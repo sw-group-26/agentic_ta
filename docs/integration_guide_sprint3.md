@@ -123,6 +123,18 @@ psql $DATABASE_URL -f db/migrations/add_draft_status.sql
 ```
 
 This adds 4 columns (idempotent — safe to run multiple times):
+Run the required migrations (run in this order):
+
+```bash
+psql $DATABASE_URL -f db/migration_submission_version_refactor.sql
+psql $DATABASE_URL -f db/migrations/add_draft_status.sql
+```
+
+This setup enables version-aware feedback.
+
+`migration_submission_version_refactor.sql` adds the version-aware linkage (`version_id`) and backfills legacy rows.
+
+`add_draft_status.sql` adds 4 workflow columns (idempotent — safe to run multiple times):
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -337,12 +349,14 @@ curl -X POST http://localhost:8000/api/feedback-drafts/a1b2c3d4-.../publish
 #### Endpoint 5: Generate Feedback (Trigger LLM)
 
 **`POST /api/submissions/{submission_id}/generate-feedback`**
+**`POST /api/submissions/{submission_id}/generate-feedback?version_id={version_id}`**
 
 Triggers the full LLM feedback generation pipeline. This is a **synchronous**
 call that may take 60–120 seconds with a real LLM.
 
 ```bash
 curl -X POST http://localhost:8000/api/submissions/cbca2439-.../generate-feedback
+curl -X POST "http://localhost:8000/api/submissions/cbca2439-.../generate-feedback?version_id=7a2a6d6f-..."
 ```
 
 **Response (200):**
@@ -351,6 +365,7 @@ curl -X POST http://localhost:8000/api/submissions/cbca2439-.../generate-feedbac
 {
   "draft_id": "a1b2c3d4-...",
   "submission_id": "cbca2439-...",
+  "version_id": "7a2a6d6f-...",
   "status": "pending",
   "message": "Feedback draft generated successfully"
 }
@@ -411,6 +426,10 @@ async function publishDraft(draftId: string) {
 async function generateFeedback(submissionId: string) {
   const res = await fetch(
     `${BASE_URL}/submissions/${submissionId}/generate-feedback`,
+async function generateFeedback(submissionId: string, versionId?: string) {
+  const qs = versionId ? `?version_id=${versionId}` : "";
+  const res = await fetch(
+    `${BASE_URL}/submissions/${submissionId}/generate-feedback${qs}`,
     {
       method: "POST",
       signal: AbortSignal.timeout(120_000), // 120s timeout for LLM
@@ -451,6 +470,7 @@ Use the draft's `status` field to control button visibility:
 3. If count == 0 → show "Generate Feedback" button
 4. If count > 0 → show latest draft with status badge
 5. TA clicks "Generate Feedback" → POST /submissions/{id}/generate-feedback
+5. TA clicks "Generate Feedback" → POST /submissions/{id}/generate-feedback (optionally with `?version_id=...`, default is latest)
    (show spinner — may take 60-120s)
 6. On success → refresh draft list
 7. TA clicks on a draft → GET /feedback-drafts/{id} → show detail + evidence
@@ -470,6 +490,7 @@ Use the draft's `status` field to control button visibility:
 | Current Status | Action | New Status | Who | Endpoint |
 |---------------|--------|------------|-----|----------|
 | (none) | generate | `pending` | TA | `POST /submissions/{id}/generate-feedback` |
+| (none) | generate | `pending` | TA | `POST /submissions/{id}/generate-feedback?version_id={optional}` |
 | `pending` | approve | `approved` | TA | `POST /feedback-drafts/{id}/approve` |
 | `approved` | publish | `published` | Instructor | `POST /feedback-drafts/{id}/publish` |
 
@@ -540,6 +561,7 @@ cp .env.example .env
 # Edit .env with your DATABASE_URL
 
 # 3. Run database migration
+psql $DATABASE_URL -f db/migration_submission_version_refactor.sql
 psql $DATABASE_URL -f db/migrations/add_draft_status.sql
 
 # 4. Start API server
@@ -614,6 +636,8 @@ Use these IDs when testing with the ingested seed data:
 │  POST /feedback-drafts/{id}/approve       → TA approves   (pending) │
 │  POST /feedback-drafts/{id}/publish       → Prof publishes(approved)│
 │  POST /submissions/{id}/generate-feedback → Trigger LLM   (120s!)  │
+│  POST /submissions/{id}/generate-feedback?version_id={opt}     │
+│      → Trigger LLM on that version (default: latest, 120s!)    │
 │                                                                     │
 │  Status: pending ──▶ approved ──▶ published (one-way only)          │
 │                                                                     │
