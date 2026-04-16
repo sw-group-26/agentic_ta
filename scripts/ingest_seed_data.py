@@ -411,32 +411,34 @@ def ingest_submissions(
                 f"/attempt/{attempt_no}"
                 f"/{filename}"
             )
-            if attempt_src.exists() and not storage.exists(attempt_key):
-                storage.save_file(attempt_src, attempt_key)
+            attempt_snapshot_path: Optional[str] = None
+            if attempt_src.exists():
+                if storage.exists(attempt_key):
+                    attempt_snapshot_path = str(storage.root / attempt_key.lstrip("/"))
+                else:
+                    attempt_snapshot_path = storage.save_file(attempt_src, attempt_key)
 
             cur.execute(
                 """
                 INSERT INTO submission_version (
                     version_id, submission_id, created_at,
-                    attempt_no, diff_summary
+                    attempt_no, diff_summary, code_snapshot_path,
+                    source_type, notes
                 )
-                VALUES (gen_random_uuid(), %s, %s, %s, %s)
+                VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     canonical_db_id,
                     attempt["submitted_at"],
                     attempt_no,
                     f"attempt {attempt_no}: {attempt['status']}",
+                    attempt_snapshot_path,
+                    "seed_ingestion",
+                    f"Imported from generated seed data for {hw_id}/{seed_sid}",
                 ),
             )
 
     return mapping
-
-
-# ------------------------------------------------------------------
-# Step 6: Test Runs
-# ------------------------------------------------------------------
-
 
 def ingest_test_runs(
     cur: psycopg2.extensions.cursor,
@@ -454,7 +456,6 @@ def ingest_test_runs(
     Saves test_case_results JSON to object storage and records the path.
     Idempotency: skip if results_json_path already exists in test_run.
     """
-    # Build seed_submission_id -> attempt_no from submissions CSV
     sid_to_attempt: dict[str, int] = {
         str(r["submission_id"]): int(r["attempt_no"])
         for _, r in submissions_df.iterrows()
@@ -472,22 +473,27 @@ def ingest_test_runs(
         canonical_db_id = submission_map[seed_sub_id]
         attempt_no = sid_to_attempt.get(seed_sub_id, 1)
 
-        # Fetch assignment_id and student_id from the canonical submission
         cur.execute(
-            "SELECT assignment_id, student_id FROM submission WHERE submission_id = %s",
-            (canonical_db_id,),
+            """
+            SELECT s.assignment_id, s.student_id, sv.version_id
+            FROM submission s
+            JOIN submission_version sv
+              ON sv.submission_id = s.submission_id
+            WHERE s.submission_id = %s
+              AND sv.attempt_no = %s
+            """,
+            (canonical_db_id, attempt_no),
         )
         sub_row = cur.fetchone()
         if not sub_row:
             continue
         assignment_uuid = str(sub_row[0])
         student_uuid = str(sub_row[1])
+        version_uuid = str(sub_row[2])
 
-        # Collect test case results for this execution
         tc = test_cases_df[test_cases_df["exec_id"] == exec_row["exec_id"]]
         total_score = float(tc["score_awarded"].sum()) if not tc.empty else 0.0
 
-        # Determine deterministic object key for results JSON
         results_key = (
             f"offering/{offering_id}"
             f"/assignment/{assignment_uuid}"
@@ -497,7 +503,6 @@ def ingest_test_runs(
         )
         expected_path = str(storage.root / results_key.lstrip("/"))
 
-        # Idempotency: skip if already ingested
         cur.execute(
             "SELECT test_run_id FROM test_run WHERE results_json_path = %s",
             (expected_path,),
@@ -505,7 +510,6 @@ def ingest_test_runs(
         if cur.fetchone():
             continue
 
-        # Save results JSON to object storage
         tc_records = (
             tc[["test_case_id", "passed", "score_awarded", "output"]].to_dict("records")
             if not tc.empty
@@ -521,24 +525,20 @@ def ingest_test_runs(
         cur.execute(
             """
             INSERT INTO test_run (
-                test_run_id, submission_id, run_at,
+                test_run_id, submission_id, version_id, run_at,
                 score, runtime_ms, results_json_path
             )
-            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s)
+            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s)
             """,
             (
                 canonical_db_id,
+                version_uuid,
                 exec_row["started_at"],
                 total_score,
                 runtime,
                 results_path,
             ),
         )
-
-
-# ------------------------------------------------------------------
-# Step 7: Similarity
-# ------------------------------------------------------------------
 
 
 def ingest_similarity(

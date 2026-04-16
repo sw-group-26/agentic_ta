@@ -4,14 +4,16 @@ Connects to PostgreSQL, assembles the feedback packet via build_feedback_packet(
 then sends it to the local Ollama server via generate_feedback().
 
 Usage:
-    # Use the hardcoded demo submission (S001 / HW1 / attempt 1)
+    # Use the hardcoded demo submission (S001 / HW1 / latest attempt)
     python scripts/generate_feedback_draft.py --demo
 
     # Use a specific submission UUID
     python scripts/generate_feedback_draft.py --submission-id <uuid>
 
+    # Target a specific version explicitly
+    python scripts/generate_feedback_draft.py --submission-id <uuid> --version-id <uuid>
+
     # Build and print the packet only — skip the Ollama call
-    # (useful when Ollama is offline)
     python scripts/generate_feedback_draft.py --demo --dry-run
 
     # Override model or base URL from the command line
@@ -29,17 +31,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+
+import psycopg2
+from dotenv import load_dotenv
 
 # Allow running from the project root without installing the package
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-import os  # noqa: E402
-
-import psycopg2  # noqa: E402
-from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -47,25 +48,11 @@ from app.llm import OllamaUnavailableError, generate_feedback  # noqa: E402
 from app.services import build_feedback_packet, save_draft  # noqa: E402
 from app.storage import LocalStorageAdapter  # noqa: E402
 
-# ---------------------------------------------------------------------------
-# Config (from .env)
-# ---------------------------------------------------------------------------
-
 DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 STORAGE_ROOT: str = os.getenv("LOCAL_STORAGE_ROOT", str(PROJECT_ROOT / "storage"))
-
-# These values are also read inside generate_feedback() via os.getenv,
-# but we read them here as CLI argument defaults for override support.
 DEFAULT_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 DEFAULT_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2")
-
-# Demo submission agreed in Step 0: S001 / HW1 / attempt 1 (on_time, 100 pts)
 DEMO_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
-
-
-# ---------------------------------------------------------------------------
-# CLI argument parsing
-# ---------------------------------------------------------------------------
 
 
 def _parse_args() -> argparse.Namespace:
@@ -89,6 +76,11 @@ def _parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--version-id",
+        metavar="UUID",
+        help="Optional explicit submission version UUID. Defaults to the latest version.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Build and print the feedback packet, but skip the Ollama call.",
@@ -106,23 +98,54 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+def _resolve_version_id(
+    submission_id: str,
+    conn: psycopg2.extensions.connection,
+    requested_version_id: str | None,
+) -> str:
+    """Resolve the requested or latest version_id for a submission."""
+    with conn.cursor() as cur:
+        if requested_version_id is not None:
+            cur.execute(
+                """
+                SELECT version_id
+                FROM submission_version
+                WHERE submission_id = %s AND version_id = %s
+                """,
+                (submission_id, requested_version_id),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError(
+                    f"version not found for submission: {requested_version_id}"
+                )
+            return str(row[0])
+
+        cur.execute(
+            """
+            SELECT version_id
+            FROM submission_version
+            WHERE submission_id = %s
+            ORDER BY attempt_no DESC, created_at DESC
+            LIMIT 1
+            """,
+            (submission_id,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError(f"submission version not found: {submission_id}")
+        return str(row[0])
 
 
 def main() -> None:
     """Entry point: build feedback packet, optionally call Ollama, print results."""
     args = _parse_args()
-
     submission_id: str = DEMO_SUBMISSION_ID if args.demo else args.submission_id
 
-    # --- Validate environment ---
     if not DATABASE_URL:
         print("[ERROR] DATABASE_URL is not set. Check your .env file.", file=sys.stderr)
         sys.exit(1)
 
-    # --- Connect to PostgreSQL ---
     print(f"[INFO] Connecting to database: {DATABASE_URL}")
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -133,16 +156,29 @@ def main() -> None:
 
     storage = LocalStorageAdapter(STORAGE_ROOT)
 
-    # --- Build feedback packet from DB data ---
-    print(f"[INFO] Building feedback packet for submission: {submission_id}")
     try:
-        packet = build_feedback_packet(submission_id, conn, storage)
+        version_id = _resolve_version_id(submission_id, conn, args.version_id)
     except ValueError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         conn.close()
         sys.exit(1)
 
-    # Print the assembled packet so teammates can inspect the DB data structure
+    print(
+        f"[INFO] Building feedback packet for submission: {submission_id} "
+        f"(version_id={version_id})"
+    )
+    try:
+        packet = build_feedback_packet(
+            submission_id,
+            conn,
+            storage,
+            version_id=version_id,
+        )
+    except ValueError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        conn.close()
+        sys.exit(1)
+
     print("\n=== Feedback Packet (assembled from DB) ===")
     print(json.dumps(packet, indent=2, default=str))
 
@@ -151,7 +187,6 @@ def main() -> None:
         conn.close()
         return
 
-    # --- Call Ollama LLM ---
     print(
         f"\n[INFO] Sending packet to Ollama ({args.base_url}, model={args.model}) ..."
     )
@@ -171,7 +206,6 @@ def main() -> None:
         conn.close()
         sys.exit(1)
 
-    # --- Print results ---
     print("\n=== LLM Feedback Draft ===")
     print(result["draft_text"])
     print(f"\nConfidence   : {result['confidence']:.2f}")
@@ -181,10 +215,9 @@ def main() -> None:
     for i, ev in enumerate(result["evidence"], 1):
         print(f"  [{i}] type={ev.get('type')}  pointer={ev.get('pointer')}")
 
-    # --- Save to DB: llm_feedback_draft + llm_evidence ---
     print("\n[INFO] Saving draft to database ...")
     try:
-        draft_id = save_draft(submission_id, result, conn)
+        draft_id = save_draft(submission_id, result, conn, version_id=version_id)
         print(f"[SAVED] draft_id: {draft_id}")
     except Exception as exc:
         print(f"[ERROR] Failed to save draft: {exc}", file=sys.stderr)
