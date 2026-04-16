@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS course_offering (
   semester        TEXT NOT NULL,          -- e.g., "Spring"
   year            INT  NOT NULL,          -- e.g., 2026
   section         TEXT,                   -- e.g., "002"
-  instructor      TEXT,
+  instructor      TEXT,                   -- compatibility/display cache; authoritative relation lives in instructor_assignment
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- UNIQUE constraint with expression: section NULL treated as empty string
@@ -50,6 +50,14 @@ CREATE TABLE IF NOT EXISTS ta (
   UNIQUE(email)
 );
 
+CREATE TABLE IF NOT EXISTS instructor (
+  instructor_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name            TEXT NOT NULL,
+  email           TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(email)
+);
+
 CREATE TABLE IF NOT EXISTS enrollment (
   enrollment_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   offering_id     UUID NOT NULL REFERENCES course_offering(offering_id) ON DELETE CASCADE,
@@ -65,6 +73,15 @@ CREATE TABLE IF NOT EXISTS ta_assignment (
   role             TEXT, -- e.g., "lead_ta", "grader"
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(offering_id, ta_id)
+);
+
+CREATE TABLE IF NOT EXISTS instructor_assignment (
+  instructor_assignment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  offering_id             UUID NOT NULL REFERENCES course_offering(offering_id) ON DELETE CASCADE,
+  instructor_id           UUID NOT NULL REFERENCES instructor(instructor_id) ON DELETE CASCADE,
+  role                    TEXT NOT NULL DEFAULT 'primary_instructor', -- primary_instructor|co_instructor
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(offering_id, instructor_id)
 );
 
 -- ===============
@@ -179,6 +196,7 @@ CREATE TABLE IF NOT EXISTS llm_feedback_draft (
   status          TEXT NOT NULL DEFAULT 'pending',
   approved_by     UUID REFERENCES ta(ta_id),
   approved_at     TIMESTAMPTZ,
+  published_by_instructor_id UUID REFERENCES instructor(instructor_id),
   published_at    TIMESTAMPTZ,
   CONSTRAINT chk_draft_status CHECK (status IN ('pending', 'approved', 'published'))
 );

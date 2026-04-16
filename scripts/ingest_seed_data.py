@@ -106,6 +106,11 @@ METHOD_MAP: dict[str, str] = {
 # Auto-flag threshold: submissions above this similarity percentage get flagged
 SIMILARITY_FLAG_THRESHOLD = 90.0
 
+DEMO_INSTRUCTOR_NAME = 'Dr. Ada Lovelace'
+DEMO_INSTRUCTOR_EMAIL = 'ada.lovelace@agentic-ta.local'
+DEMO_TA_NAME = 'Pat Morgan'
+DEMO_TA_EMAIL = 'pat.morgan.ta@agentic-ta.local'
+
 
 # ------------------------------------------------------------------
 # Helpers
@@ -193,10 +198,10 @@ def ingest_course_and_offering(
     cur.execute(
         """
         INSERT INTO course_offering (offering_id, course_id, semester, year, instructor)
-        VALUES (gen_random_uuid(), %s, 'Spring', 2026, 'TBA')
+        VALUES (gen_random_uuid(), %s, 'Spring', 2026, %s)
         ON CONFLICT DO NOTHING
         """,
-        (course_id,),
+        (course_id, DEMO_INSTRUCTOR_NAME),
     )
     cur.execute(
         """
@@ -207,7 +212,57 @@ def ingest_course_and_offering(
     )
     offering_id = str(cur.fetchone()[0])
 
+    cur.execute(
+        "UPDATE course_offering SET instructor = %s WHERE offering_id = %s",
+        (DEMO_INSTRUCTOR_NAME, offering_id),
+    )
+
     return course_id, offering_id
+
+
+def ingest_staff_roles(cur: psycopg2.extensions.cursor, offering_id: str) -> tuple[str, str]:
+    """Upsert one demo instructor and one demo TA for the offering."""
+    cur.execute(
+        """
+        INSERT INTO instructor (instructor_id, name, email)
+        VALUES (gen_random_uuid(), %s, %s)
+        ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+        RETURNING instructor_id
+        """,
+        (DEMO_INSTRUCTOR_NAME, DEMO_INSTRUCTOR_EMAIL),
+    )
+    instructor_id = str(cur.fetchone()[0])
+
+    cur.execute(
+        """
+        INSERT INTO instructor_assignment (instructor_assignment_id, offering_id, instructor_id, role)
+        VALUES (gen_random_uuid(), %s, %s, 'primary_instructor')
+        ON CONFLICT (offering_id, instructor_id) DO NOTHING
+        """,
+        (offering_id, instructor_id),
+    )
+
+    cur.execute(
+        """
+        INSERT INTO ta (ta_id, name, email)
+        VALUES (gen_random_uuid(), %s, %s)
+        ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+        RETURNING ta_id
+        """,
+        (DEMO_TA_NAME, DEMO_TA_EMAIL),
+    )
+    ta_id = str(cur.fetchone()[0])
+
+    cur.execute(
+        """
+        INSERT INTO ta_assignment (ta_assignment_id, offering_id, ta_id, role)
+        VALUES (gen_random_uuid(), %s, %s, 'lead_ta')
+        ON CONFLICT (offering_id, ta_id) DO NOTHING
+        """,
+        (offering_id, ta_id),
+    )
+
+    return instructor_id, ta_id
 
 
 # ------------------------------------------------------------------
@@ -676,29 +731,35 @@ def main() -> None:
     try:
         with conn.cursor() as cur:
             # Step 0: Migration
-            print("[0/6] Schema migration...")
+            print("[0/7] Schema migration...")
             migrate(cur)
             print("      attempt_no column ensured on submission_version")
 
             # Step 1: Course + Offering
-            print("[1/6] Upserting course + offering...")
+            print("[1/7] Upserting course + offering...")
             course_id, offering_id = ingest_course_and_offering(cur)
             print(f"      course_id   = {course_id}")
             print(f"      offering_id = {offering_id}")
 
-            # Step 2: Students
-            print("[2/6] Upserting students...")
+            # Step 2: Staff roles
+            print("[2/7] Upserting staff roles...")
+            instructor_id, ta_id = ingest_staff_roles(cur, offering_id)
+            print(f"      instructor_id = {instructor_id}")
+            print(f"      ta_id         = {ta_id}")
+
+            # Step 3: Students
+            print("[3/7] Upserting students...")
             student_map = ingest_students(cur, data["students"], filter_student_ids)
             print(f"      students loaded: {len(student_map)}")
 
-            # Step 3: Assignments
-            print("[3/6] Upserting assignments...")
+            # Step 4: Assignments
+            print("[4/7] Upserting assignments...")
             assignment_map = ingest_assignments(cur, offering_id, filter_hw_ids)
             for hw_id, hw_uuid in assignment_map.items():
                 print(f"      {hw_id} -> {hw_uuid}")
 
-            # Step 4: Submissions + Versions + Artifacts
-            print("[4/6] Ingesting submissions + versions + artifacts...")
+            # Step 5: Submissions + Versions + Artifacts
+            print("[5/7] Ingesting submissions + versions + artifacts...")
             submission_map = ingest_submissions(
                 cur,
                 data["submissions"],
@@ -712,8 +773,8 @@ def main() -> None:
             print(f"      canonical submissions : {canonical_count}")
             print(f"      total attempt mapping : {len(submission_map)}")
 
-            # Step 5: Test Runs
-            print("[5/6] Ingesting test_runs...")
+            # Step 6: Test Runs
+            print("[6/7] Ingesting test_runs...")
             ingest_test_runs(
                 cur,
                 data["submissions"],
@@ -727,8 +788,8 @@ def main() -> None:
             )
             print("      done")
 
-            # Step 6: Similarity
-            print("[6/6] Ingesting similarity_checks...")
+            # Step 7: Similarity
+            print("[7/7] Ingesting similarity_checks...")
             ingest_similarity(
                 cur,
                 data["similarity"],

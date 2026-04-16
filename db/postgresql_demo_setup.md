@@ -2,6 +2,10 @@
 
 This guide brings up a local PostgreSQL database for the project, loads demo data, and verifies that the data is available for other modules.
 
+It also covers the minimal role-based data model used to differentiate instructor-facing and TA-facing views:
+- `instructor` + `instructor_assignment`
+- `ta` + `ta_assignment`
+
 ## 1. Prerequisites
 
 - PostgreSQL 16 running locally on port `5432`
@@ -42,6 +46,7 @@ For an existing database that needs upgrading, apply the migrations instead:
 ```bash
 /opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -v ON_ERROR_STOP=1 -f db/migration_submission_version_refactor.sql
 /opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -v ON_ERROR_STOP=1 -f db/migrations/add_draft_status.sql
+/opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -v ON_ERROR_STOP=1 -f db/migrations/add_instructor_roles.sql
 ```
 
 ## 5. Install runtime dependencies
@@ -62,6 +67,8 @@ python scripts/ingest_seed_data.py --sample demo_case_01
 
 This imports:
 - 2 students
+- 1 instructor
+- 1 TA
 - 1 assignment
 - 2 logical submissions
 - 3 submission versions
@@ -72,7 +79,13 @@ This imports:
 Row counts:
 
 ```bash
-/opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -P pager=off -c "SELECT 'student' AS table_name, COUNT(*) AS row_count FROM student UNION ALL SELECT 'assignment', COUNT(*) FROM assignment UNION ALL SELECT 'submission', COUNT(*) FROM submission UNION ALL SELECT 'submission_version', COUNT(*) FROM submission_version UNION ALL SELECT 'test_run', COUNT(*) FROM test_run UNION ALL SELECT 'similarity_check', COUNT(*) FROM similarity_check UNION ALL SELECT 'llm_feedback_draft', COUNT(*) FROM llm_feedback_draft;"
+/opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -P pager=off -c "SELECT 'student' AS table_name, COUNT(*) AS row_count FROM student UNION ALL SELECT 'instructor', COUNT(*) FROM instructor UNION ALL SELECT 'ta', COUNT(*) FROM ta UNION ALL SELECT 'assignment', COUNT(*) FROM assignment UNION ALL SELECT 'submission', COUNT(*) FROM submission UNION ALL SELECT 'submission_version', COUNT(*) FROM submission_version UNION ALL SELECT 'test_run', COUNT(*) FROM test_run UNION ALL SELECT 'similarity_check', COUNT(*) FROM similarity_check UNION ALL SELECT 'llm_feedback_draft', COUNT(*) FROM llm_feedback_draft;"
+```
+
+Instructor/TA role mapping proof:
+
+```bash
+/opt/homebrew/opt/postgresql@16/bin/psql -d agentic_ta -P pager=off -c "SELECT co.offering_id, c.course_code, i.name AS instructor_name, ia.role AS instructor_role, t.name AS ta_name, taa.role AS ta_role FROM course_offering co JOIN course c ON c.course_id = co.course_id LEFT JOIN instructor_assignment ia ON ia.offering_id = co.offering_id LEFT JOIN instructor i ON i.instructor_id = ia.instructor_id LEFT JOIN ta_assignment taa ON taa.offering_id = co.offering_id LEFT JOIN ta t ON t.ta_id = taa.ta_id ORDER BY c.course_code;"
 ```
 
 Submission/version/test run proof:
@@ -114,3 +127,13 @@ Expected response:
 ```json
 {"status":"ok"}
 ```
+
+## 10. Presentation talking point
+
+For the presentation, the key database claim is:
+
+- the system does not hardcode who is an instructor or a TA
+- role visibility is backed by PostgreSQL relations
+- an instructor view can be built from `instructor_assignment`
+- a TA view can be built from `ta_assignment`
+- grading and feedback records remain tied to version-aware submissions
