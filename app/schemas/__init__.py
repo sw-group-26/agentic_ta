@@ -14,6 +14,7 @@ from app.schemas.feedback import (
     EvidenceOut,
     GenerateFeedbackOut,
     PublishOut,
+    PublishRequest,
 )
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "EvidenceOut",
     "GenerateFeedbackOut",
     "PublishOut",
+    "PublishRequest",
 ]

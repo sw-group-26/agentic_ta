@@ -38,6 +38,7 @@ SAMPLE_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
 SAMPLE_DRAFT_ID = str(uuid.uuid4())
 SAMPLE_TA_ID = str(uuid.uuid4())
 SAMPLE_VERSION_ID = str(uuid.uuid4())
+SAMPLE_INSTRUCTOR_ID = str(uuid.uuid4())
 NOW = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 # Column descriptions matching SELECT queries (cursor.description format)
@@ -53,6 +54,7 @@ DRAFT_COLUMNS = [
     ("status",),
     ("approved_by",),
     ("approved_at",),
+    ("published_by_instructor_id",),
     ("published_at",),
 ]
 
@@ -74,6 +76,7 @@ SAMPLE_DRAFT_ROW = (
     "Good work. All tests passed.",
     Decimal("0.850"),
     "pending",
+    None,
     None,
     None,
     None,
@@ -269,7 +272,8 @@ def test_publish_draft_transitions_approved_to_published(
     published_row[8] = "published"  # status
     published_row[9] = uuid.UUID(SAMPLE_TA_ID)  # approved_by
     published_row[10] = NOW  # approved_at
-    published_row[11] = NOW  # published_at
+    published_row[11] = uuid.UUID(SAMPLE_INSTRUCTOR_ID)  # published_by_instructor_id
+    published_row[12] = NOW  # published_at
     published_row = tuple(published_row)
 
     descriptions = [
@@ -285,9 +289,10 @@ def test_publish_draft_transitions_approved_to_published(
     cursor.execute.side_effect = _set_description
     cursor.fetchone.side_effect = [("approved",), published_row]
 
-    result = publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+    result = publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
 
     assert result["status"] == "published"
+    assert result["published_by_instructor_id"] == SAMPLE_INSTRUCTOR_ID
     assert result["published_at"] is not None
     mock_conn.commit.assert_called_once()
 
@@ -306,7 +311,7 @@ def test_publish_draft_rejects_non_approved_status(
     cursor.fetchone.return_value = ("pending",)
 
     with pytest.raises(ValueError, match="cannot publish"):
-        publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+        publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
 
     mock_conn.commit.assert_not_called()
 

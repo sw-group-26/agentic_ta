@@ -113,7 +113,7 @@ def _resolve_target_version_id(
 _DRAFT_COLS = (
     "draft_id, submission_id, version_id, model_name, prompt_version, "
     "generated_at, draft_text, confidence, status, "
-    "approved_by, approved_at, published_at"
+    "approved_by, approved_at, published_by_instructor_id, published_at"
 )
 
 
@@ -254,12 +254,14 @@ def approve_draft(
 
 def publish_draft(
     draft_id: str,
+    instructor_id: str,
     conn: psycopg2.extensions.connection,
 ) -> dict[str, Any]:
     """Transition a draft from approved to published.
 
     Args:
         draft_id: UUID string of the draft to publish.
+        instructor_id: UUID string of the instructor performing the publish.
         conn: Active psycopg2 connection.
 
     Returns:
@@ -287,18 +289,19 @@ def publish_draft(
         # Transition: approved -> published
         cur.execute(
             "UPDATE llm_feedback_draft "
-            "SET status = 'published', published_at = now() "
+            "SET status = 'published', published_by_instructor_id = %s, published_at = now() "
             "WHERE draft_id = %s "
             f"RETURNING {_DRAFT_COLS}",
-            (draft_id,),
+            (instructor_id, draft_id),
         )
         updated = _row_to_dict(cur, cur.fetchone())
 
     conn.commit()
 
     logger.info(
-        "publish_draft draft_id=%s approved->published",
+        "publish_draft draft_id=%s approved->published by instructor_id=%s",
         draft_id[:8],
+        instructor_id[:8],
     )
     return updated
 

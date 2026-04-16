@@ -77,6 +77,7 @@ student submissions:
 | `app/deps.py` | FastAPI dependency injection (`get_db`, `get_storage`) | Wonbum (temporary) |
 | `app/schemas/feedback.py` | Pydantic v2 request/response schemas | Wonbum |
 | `db/migrations/add_draft_status.sql` | Adds status/approval columns to `llm_feedback_draft` | Wonbum |
+| `db/migrations/add_instructor_roles.sql` | Adds `instructor`, `instructor_assignment`, and publish audit linkage | Han |
 
 ---
 
@@ -121,19 +122,21 @@ Run the required migrations (run in this order):
 ```bash
 psql $DATABASE_URL -f db/migration_submission_version_refactor.sql
 psql $DATABASE_URL -f db/migrations/add_draft_status.sql
+psql $DATABASE_URL -f db/migrations/add_instructor_roles.sql
 ```
 
 This setup enables version-aware feedback.
 
 `migration_submission_version_refactor.sql` adds the version-aware linkage (`version_id`) and backfills legacy rows.
 
-`add_draft_status.sql` adds 4 workflow columns (idempotent — safe to run multiple times):
+`add_draft_status.sql` adds workflow status columns, and `add_instructor_roles.sql` adds instructor-role normalization plus publish audit metadata:
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `status` | `TEXT NOT NULL DEFAULT 'pending'` | `'pending'`, `'approved'`, or `'published'` |
 | `approved_by` | `UUID REFERENCES ta(ta_id)` | TA who approved the draft |
 | `approved_at` | `TIMESTAMPTZ` | Timestamp of approval |
+| `published_by_instructor_id` | `UUID REFERENCES instructor(instructor_id)` | Instructor who published the draft |
 | `published_at` | `TIMESTAMPTZ` | Timestamp of publication |
 
 A CHECK constraint enforces: `status IN ('pending', 'approved', 'published')`.
@@ -319,10 +322,12 @@ curl -X POST http://localhost:8000/api/feedback-drafts/a1b2c3d4-.../approve \
 
 **`POST /api/feedback-drafts/{draft_id}/publish`**
 
-Instructor/Professor publishes an approved draft. No request body needed.
+Instructor/Professor publishes an approved draft. Request body must include `instructor_id`.
 
 ```bash
-curl -X POST http://localhost:8000/api/feedback-drafts/a1b2c3d4-.../publish
+curl -X POST http://localhost:8000/api/feedback-drafts/a1b2c3d4-.../publish \
+  -H "Content-Type: application/json" \
+  -d '{"instructor_id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890"}'
 ```
 
 **Response (200):**
@@ -331,6 +336,7 @@ curl -X POST http://localhost:8000/api/feedback-drafts/a1b2c3d4-.../publish
 {
   "draft_id": "a1b2c3d4-...",
   "status": "published",
+  "published_by_instructor_id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
   "published_at": "2026-04-05T12:10:00Z"
 }
 ```
@@ -404,9 +410,11 @@ async function approveDraft(draftId: string, taId: string) {
 }
 
 // --- 4. Publish a draft (Instructor action) ---
-async function publishDraft(draftId: string) {
+async function publishDraft(draftId: string, instructorId: string) {
   const res = await fetch(`${BASE_URL}/feedback-drafts/${draftId}/publish`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instructor_id: instructorId }),
   });
   if (res.status === 409) throw new Error("Draft not approved yet");
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -549,6 +557,7 @@ cp .env.example .env
 # 3. Run database migration
 psql $DATABASE_URL -f db/migration_submission_version_refactor.sql
 psql $DATABASE_URL -f db/migrations/add_draft_status.sql
+psql $DATABASE_URL -f db/migrations/add_instructor_roles.sql
 
 # 4. Start API server
 uvicorn app.main:app --reload --port 8000

@@ -133,6 +133,7 @@ Returns full draft text with evidence list.
   "status": "pending",
   "approved_by": null,
   "approved_at": null,
+  "published_by_instructor_id": null,
   "published_at": null,
   "evidence": [
     {
@@ -257,12 +258,20 @@ Instructor/Professor publishes an approved draft to the student (`approved` → 
 |---|---|---|
 | `draft_id` | UUID | Target draft ID |
 
-#### Request Body
+#### Request Body (**required**)
 
-None (empty body or `{}`)
+```json
+{
+  "instructor_id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890"
+}
+```
 
-> **Note**: In the MVP, no instructor authentication is required.
-> Future sprints will add instructor role verification via LTI 1.3.
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `instructor_id` | UUID | **Yes** | ID of the instructor publishing the draft |
+
+> **Note**: In the MVP, `instructor_id` is passed explicitly in the request body.
+> Future sprints may replace this with LTI 1.3 identity extraction.
 
 #### Response `200 OK`
 
@@ -270,6 +279,7 @@ None (empty body or `{}`)
 {
   "draft_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "status": "published",
+  "published_by_instructor_id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
   "published_at": "2026-03-25T16:00:00Z"
 }
 ```
@@ -364,13 +374,15 @@ None (empty body or `{}`)
 ### 5.1 Run DB Migration
 
 ```bash
-psql agentic_ta -f db/migrations/001_add_draft_status.sql
+psql agentic_ta -f db/migration_submission_version_refactor.sql
+psql agentic_ta -f db/migrations/add_draft_status.sql
+psql agentic_ta -f db/migrations/add_instructor_roles.sql
 ```
 
 Verify:
 ```bash
 psql agentic_ta -c "\d llm_feedback_draft"
-# Confirm: status, approved_by, approved_at, published_at columns exist
+# Confirm: status, approved_by, approved_at, published_by_instructor_id, published_at columns exist
 ```
 
 ### 5.2 Register the Feedback Router
@@ -423,7 +435,7 @@ app.add_middleware(
 | TA screen: feedback detail/edit | `GET /api/feedback-drafts/{id}` | Full `draft_text` + `evidence` array |
 | TA screen: "Generate Feedback" button | `POST /api/submissions/{id}/generate-feedback` | 60-120s latency, show loading spinner |
 | TA screen: "Approve" button | `POST /api/feedback-drafts/{id}/approve` | Body requires `ta_id` |
-| Instructor screen: "Publish" button | `POST /api/feedback-drafts/{id}/publish` | No body required |
+| Instructor screen: "Publish" button | `POST /api/feedback-drafts/{id}/publish` | Body requires `instructor_id` |
 | Student screen: view feedback | `GET /api/submissions/{id}/feedback-drafts?status=published` | Filter by `status=published` |
 
 ### 6.3 Error Handling Guide

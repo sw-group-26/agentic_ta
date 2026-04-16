@@ -33,6 +33,7 @@ from app.main import app
 SAMPLE_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
 SAMPLE_DRAFT_ID = str(uuid.uuid4())
 SAMPLE_TA_ID = str(uuid.uuid4())
+SAMPLE_INSTRUCTOR_ID = str(uuid.uuid4())
 SAMPLE_EVIDENCE_ID = str(uuid.uuid4())
 NOW = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -68,6 +69,7 @@ def _sample_draft_row(
     status: str = "pending",
     approved_by: str | None = None,
     approved_at: datetime | None = None,
+    published_by_instructor_id: str | None = None,
     published_at: datetime | None = None,
 ) -> dict:
     return {
@@ -81,6 +83,7 @@ def _sample_draft_row(
         "status": status,
         "approved_by": approved_by,
         "approved_at": approved_at.isoformat() if approved_at else None,
+        "published_by_instructor_id": published_by_instructor_id,
         "published_at": published_at.isoformat() if published_at else None,
     }
 
@@ -214,14 +217,19 @@ def test_publish_returns_200(mock_publish, client):
         status="published",
         approved_by=SAMPLE_TA_ID,
         approved_at=NOW,
+        published_by_instructor_id=SAMPLE_INSTRUCTOR_ID,
         published_at=NOW,
     )
 
-    resp = client.post(f"/api/feedback-drafts/{SAMPLE_DRAFT_ID}/publish")
+    resp = client.post(
+        f"/api/feedback-drafts/{SAMPLE_DRAFT_ID}/publish",
+        json={"instructor_id": SAMPLE_INSTRUCTOR_ID},
+    )
 
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "published"
+    assert body["published_by_instructor_id"] == SAMPLE_INSTRUCTOR_ID
     assert body["published_at"] is not None
     assert body["draft_id"] == SAMPLE_DRAFT_ID
 

@@ -131,18 +131,18 @@ The Agentic TA integrates into two locations within iCollege:
 
 ---
 
-## Technical Stack (Proposed)
+## Technical Stack (Current MVP + Planned Extensions)
 
 | Component | Technology |
 |-----------|------------|
 | Frontend | React, TypeScript |
 | LMS Integration | LTI 1.3 |
 | Backend | Python (FastAPI) |
-| LLM | OpenAI GPT-4 / Anthropic Claude |
-| Code Execution | Docker (sandboxed) |
-| Database | PostgreSQL, MongoDB |
-| Cache | Redis |
-| Cloud | AWS / GCP / Azure |
+| LLM | Ollama (current local MVP), OpenAI/Claude planned |
+| Code Execution | Docker (planned sandbox) |
+| Database | PostgreSQL (implemented primary database), MongoDB planned |
+| Cache | Redis (planned) |
+| Cloud | AWS / GCP / Azure (planned) |
 
 ---
 

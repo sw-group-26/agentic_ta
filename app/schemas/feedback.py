@@ -14,15 +14,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# ---------------------------------------------------------------------------
-# Evidence (single evidence item)
-# ---------------------------------------------------------------------------
-
 
 class EvidenceOut(BaseModel):
-    """
-    Single evidence item linked to a feedback draft.
-    """
+    """Single evidence item linked to a feedback draft."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -32,15 +26,8 @@ class EvidenceOut(BaseModel):
     snippet: str | None = None
 
 
-# ---------------------------------------------------------------------------
-# Draft Summary (list-view summary)
-# ---------------------------------------------------------------------------
-
-
 class DraftSummaryOut(BaseModel):
-    """
-    Summary representation of a feedback draft for list views.
-    """
+    """Summary representation of a feedback draft for list views."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,15 +44,8 @@ class DraftSummaryOut(BaseModel):
     version_id: UUID | None = None
 
 
-# ---------------------------------------------------------------------------
-# Draft Detail (full detail with evidence)
-# ---------------------------------------------------------------------------
-
-
 class DraftDetailOut(BaseModel):
-    """
-    Full detail of a feedback draft including evidence list.
-    """
+    """Full detail of a feedback draft including evidence list."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -80,42 +60,27 @@ class DraftDetailOut(BaseModel):
     status: str  # "pending" | "approved" | "published"
     approved_by: UUID | None = None
     approved_at: datetime | None = None
+    published_by_instructor_id: UUID | None = None
     published_at: datetime | None = None
     evidence: list[EvidenceOut] = Field(default_factory=list)
 
 
-# ---------------------------------------------------------------------------
-# Draft List (list response wrapper)
-# ---------------------------------------------------------------------------
-
-
 class DraftListOut(BaseModel):
-    """
-    Wrapper for a list of draft summaries scoped to a submission.
-    """
+    """Wrapper for a list of draft summaries scoped to a submission."""
 
     submission_id: UUID
     drafts: list[DraftSummaryOut]
     count: int
 
 
-# ---------------------------------------------------------------------------
-# Approve (approval request & response)
-# ---------------------------------------------------------------------------
-
-
 class ApproveRequest(BaseModel):
-    """
-    Request body for approving a feedback draft. ta_id is required.
-    """
+    """Request body for approving a feedback draft. ta_id is required."""
 
     ta_id: UUID
 
 
 class ApproveOut(BaseModel):
-    """
-    Response after successfully approving a draft.
-    """
+    """Response after successfully approving a draft."""
 
     draft_id: UUID
     status: Literal["approved"] = "approved"
@@ -123,30 +88,23 @@ class ApproveOut(BaseModel):
     approved_at: datetime
 
 
-# ---------------------------------------------------------------------------
-# Publish (publish response)
-# ---------------------------------------------------------------------------
+class PublishRequest(BaseModel):
+    """Request body for publishing a feedback draft. instructor_id is required."""
+
+    instructor_id: UUID
 
 
 class PublishOut(BaseModel):
-    """
-    Response after successfully publishing a draft.
-    """
+    """Response after successfully publishing a draft."""
 
     draft_id: UUID
     status: Literal["published"] = "published"
+    published_by_instructor_id: UUID
     published_at: datetime
 
 
-# ---------------------------------------------------------------------------
-# Generate Feedback (generation response)
-# ---------------------------------------------------------------------------
-
-
 class GenerateFeedbackOut(BaseModel):
-    """
-    Response after triggering LLM feedback generation.
-    """
+    """Response after triggering LLM feedback generation."""
 
     draft_id: UUID
     submission_id: UUID

@@ -39,11 +39,13 @@ from app.services.feedback_service import (
 SAMPLE_SUBMISSION_ID = "cbca2439-5fa7-4a69-b4d5-57515f2ca8df"
 SAMPLE_DRAFT_ID = str(uuid.uuid4())
 SAMPLE_TA_ID = str(uuid.uuid4())
+SAMPLE_INSTRUCTOR_ID = str(uuid.uuid4())
 NOW = datetime(2026, 4, 5, 12, 0, 0, tzinfo=timezone.utc)
 
 DRAFT_COLUMNS = [
     ("draft_id",),
     ("submission_id",),
+    ("version_id",),
     ("model_name",),
     ("prompt_version",),
     ("generated_at",),
@@ -52,6 +54,7 @@ DRAFT_COLUMNS = [
     ("status",),
     ("approved_by",),
     ("approved_at",),
+    ("published_by_instructor_id",),
     ("published_at",),
 ]
 
@@ -158,12 +161,13 @@ def _configure_cursor(mock_conn, description, fetchone=None, fetchall=None):
 
 
 def _make_draft_row(
-    status="pending", approved_by=None, approved_at=None, published_at=None
+    status="pending", approved_by=None, approved_at=None, published_by_instructor_id=None, published_at=None
 ):
     """Build a draft row tuple matching DRAFT_COLUMNS order."""
     return (
         uuid.UUID(SAMPLE_DRAFT_ID),
         uuid.UUID(SAMPLE_SUBMISSION_ID),
+        uuid.uuid4(),
         "mock-llm",
         "v1.0-mock",
         NOW,
@@ -172,6 +176,7 @@ def _make_draft_row(
         status,
         uuid.UUID(approved_by) if approved_by else None,
         approved_at,
+        uuid.UUID(published_by_instructor_id) if published_by_instructor_id else None,
         published_at,
     )
 
@@ -294,6 +299,7 @@ def test_full_pipeline_submission_to_published(
         status="published",
         approved_by=SAMPLE_TA_ID,
         approved_at=NOW,
+        published_by_instructor_id=SAMPLE_INSTRUCTOR_ID,
         published_at=NOW,
     )
     descriptions_publish = [[("status",)], DRAFT_COLUMNS]
@@ -309,9 +315,10 @@ def test_full_pipeline_submission_to_published(
     cursor.fetchone.side_effect = [("approved",), published_row]
     mock_conn.commit.reset_mock()
 
-    result = publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+    result = publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
 
     assert result["status"] == "published"
+    assert result["published_by_instructor_id"] == SAMPLE_INSTRUCTOR_ID
     assert result["published_at"] is not None
     mock_conn.commit.assert_called_once()
     logger.info(
@@ -374,6 +381,7 @@ def test_draft_status_transitions_via_service(mock_conn: MagicMock) -> None:
         status="published",
         approved_by=SAMPLE_TA_ID,
         approved_at=NOW,
+        published_by_instructor_id=SAMPLE_INSTRUCTOR_ID,
         published_at=NOW,
     )
     descriptions_pub = [[("status",)], DRAFT_COLUMNS]
@@ -389,8 +397,9 @@ def test_draft_status_transitions_via_service(mock_conn: MagicMock) -> None:
     cursor.fetchone.side_effect = [("approved",), published_row]
     mock_conn.commit.reset_mock()
 
-    result = publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+    result = publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
     assert result["status"] == "published"
+    assert result["published_by_instructor_id"] == SAMPLE_INSTRUCTOR_ID
     logger.info("  OK: approved -> published")
 
     # --- Invalid: pending -> published (direct) ---
@@ -404,7 +413,7 @@ def test_draft_status_transitions_via_service(mock_conn: MagicMock) -> None:
     mock_conn.commit.reset_mock()
 
     with pytest.raises(ValueError, match="cannot publish"):
-        publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+        publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
     mock_conn.commit.assert_not_called()
     logger.info("  OK: ValueError raised (cannot publish pending)")
 
@@ -436,7 +445,7 @@ def test_draft_status_transitions_via_service(mock_conn: MagicMock) -> None:
     cursor.fetchone.return_value = ("published",)
 
     with pytest.raises(ValueError, match="cannot publish"):
-        publish_draft(SAMPLE_DRAFT_ID, mock_conn)
+        publish_draft(SAMPLE_DRAFT_ID, SAMPLE_INSTRUCTOR_ID, mock_conn)
     logger.info("  OK: ValueError raised (cannot publish already-published)")
 
     logger.info("RESULT: PASSED — all 6 transitions verified (2 valid, 4 invalid)")

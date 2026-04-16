@@ -28,6 +28,7 @@ from app.schemas.feedback import (
     DraftSummaryOut,
     GenerateFeedbackOut,
     PublishOut,
+    PublishRequest,
 )
 from app.services import feedback_service
 
@@ -156,18 +157,28 @@ def approve_feedback_draft(
 )
 def publish_feedback_draft(
     draft_id: UUID,
+    body: PublishRequest,
     conn=Depends(get_db),
 ) -> PublishOut:
     """Publish an approved feedback draft. Only instructors may call this."""
-    logger.info("publish_feedback_draft draft_id=%s", draft_id)
+    logger.info(
+        "publish_feedback_draft draft_id=%s instructor_id=%s",
+        draft_id,
+        body.instructor_id,
+    )
 
     try:
-        result = feedback_service.publish_draft(str(draft_id), conn)
+        result = feedback_service.publish_draft(
+            str(draft_id),
+            str(body.instructor_id),
+            conn,
+        )
     except ValueError as exc:
         raise _handle_value_error(exc) from exc
 
     return PublishOut(
         draft_id=result["draft_id"],
+        published_by_instructor_id=result["published_by_instructor_id"],
         published_at=result["published_at"],
     )
 
